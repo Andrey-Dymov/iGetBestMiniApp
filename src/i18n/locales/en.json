@@ -1,0 +1,37 @@
+{
+  "welcome": {
+    "title": "iGetBest",
+    "subtitle": "Compare options by criteria and make informed decisions",
+    "start": "Start"
+  },
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "delete": "Delete"
+  },
+  "comparisons": {
+    "add": "Add",
+    "empty": "No comparisons. Create the first one!",
+    "new": "New comparison",
+    "name": "Name",
+    "namePlaceholder": "Enter name",
+    "create": "Create",
+    "deleteConfirm": "Delete this comparison?",
+    "variants": "Variants",
+    "parameters": "Parameters",
+    "addSamples": "Sample data",
+    "samplesAdded": "Added {count} comparisons",
+    "samplesAlreadyExist": "All sample data already added"
+  },
+  "results": {
+    "empty": "Add variants and parameters",
+    "hint": "Use the buttons below to add",
+    "variants": "Variants",
+    "parameters": "Parameters",
+    "addVariant": "Variant",
+    "addParam": "Parameter",
+    "variantNamePlaceholder": "Variant name",
+    "paramNamePlaceholder": "Parameter name",
+    "weight": "Weight (0–10)"
+  }
+}

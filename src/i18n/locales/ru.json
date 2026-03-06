@@ -1,0 +1,37 @@
+{
+  "welcome": {
+    "title": "iGetBest",
+    "subtitle": "Сравнивайте варианты по критериям и принимайте обоснованные решения",
+    "start": "Начать"
+  },
+  "common": {
+    "back": "Назад",
+    "cancel": "Отмена",
+    "delete": "Удалить"
+  },
+  "comparisons": {
+    "add": "Добавить",
+    "empty": "Нет сравнений. Создайте первое!",
+    "new": "Новое сравнение",
+    "name": "Название",
+    "namePlaceholder": "Введите название",
+    "create": "Создать",
+    "deleteConfirm": "Удалить это сравнение?",
+    "variants": "Варианты",
+    "parameters": "Параметры",
+    "addSamples": "Тестовые данные",
+    "samplesAdded": "Добавлено {count} сравнений",
+    "samplesAlreadyExist": "Все тестовые данные уже добавлены"
+  },
+  "results": {
+    "empty": "Добавьте варианты и параметры",
+    "hint": "Используйте кнопки ниже для добавления",
+    "variants": "Варианты",
+    "parameters": "Параметры",
+    "addVariant": "Вариант",
+    "addParam": "Параметр",
+    "variantNamePlaceholder": "Название варианта",
+    "paramNamePlaceholder": "Название параметра",
+    "weight": "Вес (0–10)"
+  }
+}
