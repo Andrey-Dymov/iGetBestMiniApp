@@ -1,0 +1,54 @@
+{
+  "list": {
+    "title": "比较",
+    "more": "更多",
+    "duplicate": "复制",
+    "exportJson": "导出到剪贴板 (JSON)",
+    "exportCompact": "导出到剪贴板 (简短)",
+    "share": "分享",
+    "delete": "删除",
+    "importJson": "从剪贴板导入 (JSON)",
+    "importCompact": "导入简短格式",
+    "importSuccess": "比较 «{name}» 已导入",
+    "importError": "导入错误: {msg}",
+    "exportSuccess": "比较 «{name}» 已导出到剪贴板",
+    "clipboardEmpty": "剪贴板为空",
+    "compactPlaceholder": "粘贴简短格式文本...",
+    "compactExample": "示例:\n比较: 选择摩托车\n参数: 价格 (1200000:7-1600000:4), 权重 8\n川崎: 1600000, 舒适."
+  },
+  "welcome": {
+    "title": "iGetBest",
+    "subtitle": "按标准比较选项并做出明智决策",
+    "start": "开始"
+  },
+  "common": {
+    "back": "返回",
+    "cancel": "取消",
+    "delete": "删除"
+  },
+  "comparisons": {
+    "add": "添加",
+    "empty": "没有比较。创建第一个！",
+    "new": "新建比较",
+    "name": "名称",
+    "namePlaceholder": "输入名称",
+    "create": "创建",
+    "deleteConfirm": "删除此比较？",
+    "variants": "选项",
+    "parameters": "参数",
+    "addSamples": "添加示例",
+    "samplesAdded": "已添加 {count} 个比较",
+    "samplesAlreadyExist": "所有示例数据已添加"
+  },
+  "results": {
+    "empty": "添加选项和参数",
+    "hint": "使用下方按钮添加",
+    "variants": "选项",
+    "parameters": "参数",
+    "addVariant": "选项",
+    "addParam": "参数",
+    "variantNamePlaceholder": "选项名称",
+    "paramNamePlaceholder": "参数名称",
+    "weight": "权重 (0–10)"
+  }
+}

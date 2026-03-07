@@ -16,7 +16,6 @@ import {
   NIcon,
   NDropdown,
 } from 'naive-ui'
-import type { DropdownOption } from 'naive-ui'
 import {
   EllipsisHorizontalOutline,
   DocumentTextOutline,
@@ -24,17 +23,36 @@ import {
   CopyOutline,
   ShareSocialOutline,
   TrashOutline,
+  AddCircleOutline,
 } from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
 import { useMessage } from 'naive-ui'
 import type { Comparison } from '../types'
+import { i18n, LOCALES } from '../i18n'
+import type { DropdownOption } from 'naive-ui'
 
 const router = useRouter()
 const store = useComparisonsStore()
 const { t, locale } = useI18n()
 const message = useMessage()
 
-const dateLocale = computed(() => (locale.value === 'ru' ? 'ru-RU' : 'en-GB'))
+const dateLocale = computed(() => {
+  if (locale.value === 'ru') return 'ru-RU'
+  if (locale.value === 'zh') return 'zh-CN'
+  return 'en-GB'
+})
+
+const localeOptions = computed<DropdownOption[]>(() =>
+  LOCALES.map((l) => ({ label: l.label, key: l.code }))
+)
+
+function setLocale(code: string) {
+  locale.value = code as 'en' | 'ru' | 'zh'
+  i18n.global.locale.value = code as 'en' | 'ru' | 'zh'
+  try {
+    localStorage.setItem('igetbest-locale', code)
+  } catch {}
+}
 const showAddModal = ref(false)
 const showImportCompactModal = ref(false)
 const newName = ref('')
@@ -43,10 +61,6 @@ const importCompactText = ref('')
 onMounted(async () => {
   await store.load()
 })
-
-function goBack() {
-  router.push('/')
-}
 
 function openAdd() {
   newName.value = ''
@@ -114,6 +128,23 @@ function getMenuOptions(): DropdownOption[] {
     { type: 'divider' },
     { label: t('list.delete'), key: 'delete', icon: renderIcon(TrashOutline) },
   ]
+}
+
+const addMenuOptions = computed<DropdownOption[]>(() => [
+  { label: t('list.importJson'), key: 'importJson', icon: renderIcon(DocumentTextOutline) },
+  { label: t('list.importCompact'), key: 'importCompact', icon: renderIcon(DocumentOutline) },
+  {
+    label: t('comparisons.addSamples'),
+    key: 'addSamples',
+    icon: renderIcon(AddCircleOutline),
+    disabled: store.hasAllSamples(),
+  },
+])
+
+function handleAddMenuSelect(key: string) {
+  if (key === 'importJson') importFromClipboardJson()
+  else if (key === 'importCompact') showImportCompactModal.value = true
+  else if (key === 'addSamples') addSamples()
 }
 
 function handleMenuSelect(key: string, c: Comparison) {
@@ -200,23 +231,29 @@ function addSamples() {
 <template>
   <div class="list">
     <div class="header">
-      <NButton quaternary @click="goBack" class="back-btn">← {{ t('common.back') }}</NButton>
-      <NSpace>
-        <NButton quaternary circle size="small" @click="importFromClipboardJson" :title="t('list.importJson')">
-          <template #icon>
-            <NIcon><DocumentTextOutline /></NIcon>
-          </template>
-        </NButton>
-        <NButton quaternary circle size="small" @click="showImportCompactModal = true" :title="t('list.importCompact')">
-          <template #icon>
-            <NIcon><DocumentOutline /></NIcon>
-          </template>
-        </NButton>
-        <NButton secondary @click="addSamples" :disabled="store.hasAllSamples()">
-          {{ t('comparisons.addSamples') }}
-        </NButton>
+      <div class="header-left">
+        <NDropdown :options="localeOptions" trigger="click" @select="setLocale" placement="bottom-start">
+          <NButton quaternary size="small" class="lang-btn">
+            {{ LOCALES.find((l) => l.code === locale)?.label ?? 'EN' }}
+          </NButton>
+        </NDropdown>
+      </div>
+      <h1 class="list-title">{{ t('list.title') }}</h1>
+      <div class="header-right">
+        <NDropdown
+          :options="addMenuOptions"
+          trigger="click"
+          placement="bottom-end"
+          @select="handleAddMenuSelect"
+        >
+          <NButton quaternary circle size="small" :title="t('list.more')">
+            <template #icon>
+              <NIcon><EllipsisHorizontalOutline /></NIcon>
+            </template>
+          </NButton>
+        </NDropdown>
         <NButton type="primary" @click="openAdd">{{ t('comparisons.add') }}</NButton>
-      </NSpace>
+      </div>
     </div>
 
     <NList v-if="store.sortedComparisons.length" :bordered="false" hoverable>
@@ -332,10 +369,37 @@ function addSamples() {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+  gap: 12px;
 }
 
-.back-btn {
-  margin-right: auto;
+.header-left,
+.header-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.header-left {
+  justify-content: flex-start;
+}
+
+.header-right {
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.list-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--tg-theme-text-color, #000);
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.lang-btn {
+  min-width: 44px;
 }
 
 .list-item {

@@ -1,5 +1,7 @@
 {
   "list": {
+    "title": "Сравнения",
+    "more": "Ещё",
     "duplicate": "Дублировать",
     "exportJson": "Экспорт в буфер (JSON)",
     "exportCompact": "Экспорт в буфер (кратко)",
@@ -34,7 +36,7 @@
     "deleteConfirm": "Удалить это сравнение?",
     "variants": "Варианты",
     "parameters": "Параметры",
-    "addSamples": "Тестовые данные",
+    "addSamples": "Добавить примеры",
     "samplesAdded": "Добавлено {count} сравнений",
     "samplesAlreadyExist": "Все тестовые данные уже добавлены"
   },

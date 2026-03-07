@@ -1,5 +1,7 @@
 {
   "list": {
+    "title": "Comparisons",
+    "more": "More",
     "duplicate": "Duplicate",
     "exportJson": "Export to clipboard (JSON)",
     "exportCompact": "Export to clipboard (compact)",
@@ -34,7 +36,7 @@
     "deleteConfirm": "Delete this comparison?",
     "variants": "Variants",
     "parameters": "Parameters",
-    "addSamples": "Sample data",
+    "addSamples": "Add examples",
     "samplesAdded": "Added {count} comparisons",
     "samplesAlreadyExist": "All sample data already added"
   },

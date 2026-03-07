@@ -22,7 +22,7 @@ onMounted(async () => {
 })
 
 function goBack() {
-  router.push('/comparisons')
+  router.push('/')
 }
 
 function hasData() {

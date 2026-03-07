@@ -5,12 +5,6 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'welcome',
-      component: () => import('../views/WelcomeView.vue'),
-      meta: { title: 'iGetBest' },
-    },
-    {
-      path: '/comparisons',
       name: 'comparisons',
       component: () => import('../views/ComparisonListView.vue'),
       meta: { title: 'Сравнения' },
