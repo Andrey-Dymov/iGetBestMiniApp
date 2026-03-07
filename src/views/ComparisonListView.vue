@@ -314,10 +314,10 @@ function addSingleSample(name: string) {
           <template #description>
             <div v-if="c.variants.length || c.parameters.length" class="meta">
               <div v-if="c.variants.length" class="meta-line variants-names">
-                <span v-for="(v, i) in sortedVariants(c)" :key="v.id" class="variant-item">
-                  <span v-if="i > 0" class="variant-sep">|</span>
+                <span v-for="(v, i) in sortedVariants(c)" :key="v.id" class="variant-block">
                   <span class="variant-rank">{{ i + 1 }}</span>
                   {{ v.name }}<span class="variant-score">{{ '\u00A0' }}–{{ '\u00A0' }}{{ Math.round(v.totalScore) }}</span>
+                  <span v-if="i < sortedVariants(c).length - 1" class="variant-sep">|</span>
                 </span>
               </div>
               <div v-if="hasAnyImages(c)" class="meta-line variant-images-row">
@@ -473,9 +473,10 @@ function addSingleSample(name: string) {
   color: var(--tg-theme-text-color, #000);
 }
 
-.variant-item {
+.variant-block {
   display: inline-flex;
   align-items: center;
+  white-space: nowrap;
 }
 
 .variant-rank {
@@ -495,7 +496,7 @@ function addSingleSample(name: string) {
 
 .variant-sep {
   margin: 0 6px;
-  color: var(--tg-theme-hint-color, #999);
+  color: #ddd;
   font-weight: normal;
 }
 
