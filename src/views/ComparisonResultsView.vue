@@ -7,6 +7,7 @@ import { AddOutline } from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
 import { recalculateTotalScores, findScoreFromCriteria } from '../utils/importExport'
 import ParameterEditForm from '../components/ParameterEditForm.vue'
+import VariantEditForm from '../components/VariantEditForm.vue'
 import type { Variant, Parameter, Value } from '../types'
 import type { ParameterFormData, VariantValue } from '../components/ParameterEditForm.vue'
 
@@ -20,7 +21,6 @@ const showVariantModal = ref(false)
 const showParamModal = ref(false)
 const editingVariant = ref<Variant | null>(null)
 const editingParam = ref<Parameter | null>(null)
-const newVariantName = ref('')
 const sortedVariants = computed(() => {
   const c = comparison.value
   if (!c) return []
@@ -85,24 +85,56 @@ function hasTableData() {
 
 function openAddVariant() {
   editingVariant.value = null
-  newVariantName.value = ''
   showVariantModal.value = true
 }
 
 function openEditVariant(v: Variant) {
   editingVariant.value = v
-  newVariantName.value = v.name
   showVariantModal.value = true
 }
 
-function saveVariant() {
+function onVariantFormSave(data: { name: string; parameterValues: Record<string, VariantValue> }) {
   const c = comparison.value
-  if (!c || !newVariantName.value.trim()) return
+  if (!c || !data.name.trim()) return
   if (editingVariant.value) {
-    store.updateVariant(c.id, editingVariant.value.id, { name: newVariantName.value.trim() })
+    store.updateVariant(c.id, editingVariant.value.id, { name: data.name.trim() })
+    for (const p of c.parameters) {
+      const pv = data.parameterValues[p.id]
+      if (!pv) continue
+      const displayVal = p.parameterType === 'number'
+        ? (pv.numericValue ?? (pv.textValue && Number.isFinite(Number(pv.textValue)) ? Number(pv.textValue) : undefined))
+        : (pv.textValue ?? (pv.numericValue != null ? String(pv.numericValue) : undefined))
+      if (displayVal !== undefined && displayVal !== '') {
+        const score = findScoreFromCriteria(p.criteria ?? [], displayVal, p.parameterType)
+        store.setOrUpdateValue(c.id, editingVariant.value!.id, p.id, pv.textValue, pv.numericValue, score)
+      }
+    }
   } else {
-    store.addVariant(c.id, newVariantName.value.trim())
+    const v = store.addVariant(c.id, data.name.trim())
+    for (const p of c.parameters) {
+      const pv = data.parameterValues[p.id]
+      if (!pv) continue
+      const displayVal = p.parameterType === 'number'
+        ? (pv.numericValue ?? (pv.textValue && Number.isFinite(Number(pv.textValue)) ? Number(pv.textValue) : undefined))
+        : (pv.textValue ?? (pv.numericValue != null ? String(pv.numericValue) : undefined))
+      if (displayVal !== undefined && displayVal !== '') {
+        const score = findScoreFromCriteria(p.criteria ?? [], displayVal, p.parameterType)
+        store.setOrUpdateValue(c.id, v.id, p.id, pv.textValue, pv.numericValue, score)
+      }
+    }
   }
+  recalculateTotalScores(c)
+  showVariantModal.value = false
+  editingVariant.value = null
+}
+
+function onVariantFormDelete() {
+  const c = comparison.value
+  const v = editingVariant.value
+  if (!c || !v) return
+  if (!confirm(t('results.deleteVariantConfirm'))) return
+  store.deleteVariant(c.id, v.id)
+  recalculateTotalScores(c)
   showVariantModal.value = false
   editingVariant.value = null
 }
@@ -281,7 +313,7 @@ function onParamFormSave(data: ParameterFormData) {
                     </NButton>
                   </div>
                 </th>
-                <th v-for="v in sortedVariants" :key="v.id" class="variant-col">
+                <th v-for="v in sortedVariants" :key="v.id" class="variant-col variant-col-clickable" @click="openEditVariant(v)">
                   <div class="variant-header">
                     <span class="variant-name">{{ v.name }}</span>
                     <span class="variant-score">{{ Math.round(v.totalScore) }}</span>
@@ -333,17 +365,17 @@ function onParamFormSave(data: ParameterFormData) {
     <NEmpty v-else :description="t('results.notFound')" class="empty" />
 
     <NModal :show="showVariantModal" @update:show="onVariantModalShow">
-      <div class="modal-content">
+      <div class="modal-content modal-content-scroll">
         <h3>{{ editingVariant ? t('results.editVariant') : t('results.addVariant') }}</h3>
-        <NForm>
-          <NFormItem :label="t('comparisons.name')">
-            <NInput v-model:value="newVariantName" :placeholder="t('results.variantNamePlaceholder')" @keyup.enter="saveVariant" />
-          </NFormItem>
-          <NSpace justify="end">
-            <NButton @click="showVariantModal = false">{{ t('common.cancel') }}</NButton>
-            <NButton type="primary" :disabled="!newVariantName.trim()" @click="saveVariant">{{ t('comparisons.create') }}</NButton>
-          </NSpace>
-        </NForm>
+        <VariantEditForm
+          v-if="comparison"
+          :variant="editingVariant"
+          :comparison="comparison"
+          :get-value="getValue"
+          @save="onVariantFormSave"
+          @cancel="showVariantModal = false"
+          @delete="onVariantFormDelete"
+        />
       </div>
     </NModal>
 
@@ -454,6 +486,9 @@ function onParamFormSave(data: ParameterFormData) {
 .variant-col {
   min-width: 90px;
   text-align: center;
+}
+.variant-col-clickable {
+  cursor: pointer;
 }
 
 .variant-header {

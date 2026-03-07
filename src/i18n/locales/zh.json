@@ -57,6 +57,7 @@
     "addVariant": "选项",
     "addParam": "参数",
     "editVariant": "编辑选项",
+    "deleteVariantConfirm": "删除选项？所有相关评分将被移除。",
     "editParam": "编辑参数",
     "variantNamePlaceholder": "选项名称",
     "paramNamePlaceholder": "参数名称",

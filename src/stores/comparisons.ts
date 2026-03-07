@@ -121,6 +121,15 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     save()
   }
 
+  function deleteVariant(comparisonId: string, variantId: string) {
+    const c = getComparison(comparisonId)
+    if (!c) return
+    c.variants = c.variants.filter((x) => x.id !== variantId)
+    c.values = c.values.filter((x) => x.variantId !== variantId)
+    c.modifiedDate = new Date().toISOString()
+    save()
+  }
+
   function updateParameter(
     comparisonId: string,
     parameterId: string,
@@ -350,6 +359,7 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     addVariant,
     addParameter,
     updateVariant,
+    deleteVariant,
     updateParameter,
     addValue,
     setOrUpdateValue,

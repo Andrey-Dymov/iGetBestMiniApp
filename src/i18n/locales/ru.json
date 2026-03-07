@@ -57,6 +57,7 @@
     "addVariant": "Вариант",
     "addParam": "Параметр",
     "editVariant": "Редактировать вариант",
+    "deleteVariantConfirm": "Удалить вариант? Все связанные оценки будут удалены.",
     "editParam": "Редактировать параметр",
     "variantNamePlaceholder": "Название варианта",
     "paramNamePlaceholder": "Название параметра",
