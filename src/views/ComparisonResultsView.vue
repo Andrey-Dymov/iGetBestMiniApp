@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useComparisonsStore } from '../stores/comparisons'
-import { NButton, NEmpty, NCard, NSpace, NModal, NInput, NForm, NFormItem, NInputNumber } from 'naive-ui'
+import { NButton, NEmpty, NSpace, NModal, NInput, NForm, NFormItem, NInputNumber } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
+import { recalculateTotalScores } from '../utils/importExport'
+import type { Comparison, Variant, Parameter, Value } from '../types'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,17 +19,42 @@ const newVariantName = ref('')
 const newParamName = ref('')
 const newParamWeight = ref(5)
 
+const sortedVariants = computed(() => {
+  const c = comparison.value
+  if (!c) return []
+  return [...c.variants].sort((a, b) => b.totalScore - a.totalScore)
+})
+
+const sortedParameters = computed(() => {
+  const c = comparison.value
+  if (!c) return []
+  return [...c.parameters].sort((a, b) => b.weight - a.weight)
+})
+
+function getValue(variantId: string, parameterId: string): Value | undefined {
+  const c = comparison.value
+  return c?.values.find((v) => v.variantId === variantId && v.parameterId === parameterId)
+}
+
 onMounted(async () => {
   await store.load()
 })
+
+watch(
+  comparison,
+  (c) => {
+    if (c && c.values.length) recalculateTotalScores(c)
+  },
+  { immediate: true }
+)
 
 function goBack() {
   router.push('/')
 }
 
-function hasData() {
+function hasTableData() {
   const c = comparison.value
-  return c && (c.variants.length > 0 || c.parameters.length > 0)
+  return c && c.variants.length > 0 && c.parameters.length > 0
 }
 
 function openAddVariant() {
@@ -58,42 +85,63 @@ function addParam() {
 
 <template>
   <div class="results">
-    <div class="header">
-      <NButton quaternary @click="goBack">← {{ t('common.back') }}</NButton>
-    </div>
+    <header class="results-header">
+      <NButton quaternary size="small" @click="goBack">← {{ t('common.back') }}</NButton>
+      <h1 class="results-title">{{ comparison?.name ?? '' }}</h1>
+      <NSpace>
+        <NButton size="small" @click="openAddVariant">{{ t('results.addVariant') }}</NButton>
+        <NButton size="small" @click="openAddParam">{{ t('results.addParam') }}</NButton>
+      </NSpace>
+    </header>
 
     <template v-if="comparison">
-      <div class="title-row">
-        <h2 class="title">{{ comparison.name }}</h2>
-        <NSpace>
-          <NButton size="small" @click="openAddVariant">{{ t('results.addVariant') }}</NButton>
-          <NButton size="small" @click="openAddParam">{{ t('results.addParam') }}</NButton>
-        </NSpace>
-      </div>
-
-      <NEmpty v-if="!hasData()" :description="t('results.empty')" class="empty">
+      <NEmpty v-if="!hasTableData()" :description="t('results.empty')" class="empty">
         <template #extra>
           <NSpace vertical align="center">
             <p class="hint">{{ t('results.hint') }}</p>
+            <NSpace>
+              <NButton size="small" @click="openAddVariant">{{ t('results.addVariant') }}</NButton>
+              <NButton size="small" @click="openAddParam">{{ t('results.addParam') }}</NButton>
+            </NSpace>
           </NSpace>
         </template>
       </NEmpty>
 
-      <div v-else class="content">
-        <NCard v-if="comparison.variants.length" :title="t('results.variants')" size="small">
-          <ul>
-            <li v-for="v in comparison.variants" :key="v.id">{{ v.name }}</li>
-          </ul>
-        </NCard>
-        <NCard v-if="comparison.parameters.length" :title="t('results.parameters')" size="small">
-          <ul>
-            <li v-for="p in comparison.parameters" :key="p.id">{{ p.name }} ({{ p.weight }})</li>
-          </ul>
-        </NCard>
+      <div v-else class="table-wrap">
+        <div class="table-scroll">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th class="param-col"></th>
+                <th v-for="v in sortedVariants" :key="v.id" class="variant-col">
+                  <div class="variant-header">
+                    <span class="variant-name">{{ v.name }}</span>
+                    <span class="variant-score">{{ Math.round(v.totalScore) }}</span>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="p in sortedParameters" :key="p.id">
+                <td class="param-col">
+                  <div class="param-header">
+                    <span class="param-name">{{ p.name }}</span>
+                    <span class="param-weight">{{ p.weight }}</span>
+                  </div>
+                </td>
+                <td v-for="v in sortedVariants" :key="v.id" class="cell">
+                  <div class="cell-value">
+                    {{ getValue(v.id, p.id)?.textValue ?? getValue(v.id, p.id)?.numericValue ?? '—' }}
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </template>
 
-    <NEmpty v-else description="Сравнение не найдено" />
+    <NEmpty v-else :description="t('results.notFound')" class="empty" />
 
     <NModal :show="showVariantModal" @update:show="showVariantModal = $event">
       <div class="modal-content">
@@ -132,26 +180,108 @@ function addParam() {
 
 <style scoped>
 .results {
-  padding: 24px;
+  padding: 16px;
   min-height: 100vh;
-}
-
-.header {
-  margin-bottom: 16px;
-}
-
-.title-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 24px;
+  flex-direction: column;
 }
 
-.title {
+.results-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.results-title {
+  flex: 1;
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: calc(100vh - 120px);
+}
+
+.results-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.results-table th,
+.results-table td {
+  padding: 10px 12px;
+  border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+  vertical-align: middle;
+}
+
+.param-col {
+  position: sticky;
+  left: 0;
+  background: var(--tg-theme-bg-color, #fff);
+  min-width: 100px;
+  max-width: 140px;
+}
+
+.variant-col {
+  min-width: 90px;
+  text-align: center;
+}
+
+.variant-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.variant-name {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.variant-score {
+  font-size: 0.85em;
+  color: var(--tg-theme-hint-color, #999);
+}
+
+.param-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.param-name {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.param-weight {
+  font-size: 0.8em;
+  color: var(--tg-theme-hint-color, #999);
+}
+
+.cell {
+  text-align: center;
+}
+
+.cell-value {
+  min-height: 1.2em;
 }
 
 .modal-content {
@@ -172,16 +302,5 @@ function addParam() {
 .hint {
   color: var(--tg-theme-hint-color, #999);
   font-size: 0.9em;
-}
-
-.content {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-ul {
-  margin: 0;
-  padding-left: 20px;
 }
 </style>

@@ -42,6 +42,7 @@
   },
   "results": {
     "empty": "添加选项和参数",
+    "notFound": "未找到比较",
     "hint": "使用下方按钮添加",
     "variants": "选项",
     "parameters": "参数",

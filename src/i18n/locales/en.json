@@ -42,6 +42,7 @@
   },
   "results": {
     "empty": "Add variants and parameters",
+    "notFound": "Comparison not found",
     "hint": "Use the buttons below to add",
     "variants": "Variants",
     "parameters": "Parameters",
