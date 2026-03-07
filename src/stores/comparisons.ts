@@ -103,6 +103,24 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     return p
   }
 
+  function updateVariant(comparisonId: string, variantId: string, updates: Partial<Pick<Variant, 'name'>>) {
+    const c = getComparison(comparisonId)
+    const v = c?.variants.find((x) => x.id === variantId)
+    if (!v) return
+    Object.assign(v, updates)
+    c!.modifiedDate = new Date().toISOString()
+    save()
+  }
+
+  function updateParameter(comparisonId: string, parameterId: string, updates: Partial<Pick<Parameter, 'name' | 'weight'>>) {
+    const c = getComparison(comparisonId)
+    const p = c?.parameters.find((x) => x.id === parameterId)
+    if (!p) return
+    Object.assign(p, updates)
+    c!.modifiedDate = new Date().toISOString()
+    save()
+  }
+
   function addValue(comparisonId: string, variantId: string, parameterId: string, textValue?: string, numericValue?: number, score?: number): Value {
     const c = getComparison(comparisonId)
     if (!c) throw new Error('Comparison not found')
@@ -262,6 +280,8 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     deleteComparison,
     addVariant,
     addParameter,
+    updateVariant,
+    updateParameter,
     addValue,
     setOrUpdateValue,
     addSampleData,

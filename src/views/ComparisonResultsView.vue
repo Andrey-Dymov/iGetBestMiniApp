@@ -15,6 +15,8 @@ const { t } = useI18n()
 const comparison = computed(() => store.getComparison(route.params.id as string))
 const showVariantModal = ref(false)
 const showParamModal = ref(false)
+const editingVariant = ref<Variant | null>(null)
+const editingParam = ref<Parameter | null>(null)
 const newVariantName = ref('')
 const newParamName = ref('')
 const newParamWeight = ref(5)
@@ -58,28 +60,56 @@ function hasTableData() {
 }
 
 function openAddVariant() {
+  editingVariant.value = null
   newVariantName.value = ''
   showVariantModal.value = true
 }
 
-function addVariant() {
+function openEditVariant(v: Variant) {
+  editingVariant.value = v
+  newVariantName.value = v.name
+  showVariantModal.value = true
+}
+
+function saveVariant() {
   const c = comparison.value
   if (!c || !newVariantName.value.trim()) return
-  store.addVariant(c.id, newVariantName.value.trim())
+  if (editingVariant.value) {
+    store.updateVariant(c.id, editingVariant.value.id, { name: newVariantName.value.trim() })
+  } else {
+    store.addVariant(c.id, newVariantName.value.trim())
+  }
   showVariantModal.value = false
+  editingVariant.value = null
 }
 
 function openAddParam() {
+  editingParam.value = null
   newParamName.value = ''
   newParamWeight.value = 5
   showParamModal.value = true
 }
 
-function addParam() {
+function openEditParam(p: Parameter) {
+  editingParam.value = p
+  newParamName.value = p.name
+  newParamWeight.value = p.weight
+  showParamModal.value = true
+}
+
+function saveParam() {
   const c = comparison.value
   if (!c || !newParamName.value.trim()) return
-  store.addParameter(c.id, newParamName.value.trim(), newParamWeight.value)
+  if (editingParam.value) {
+    store.updateParameter(c.id, editingParam.value.id, {
+      name: newParamName.value.trim(),
+      weight: newParamWeight.value,
+    })
+  } else {
+    store.addParameter(c.id, newParamName.value.trim(), newParamWeight.value)
+  }
   showParamModal.value = false
+  editingParam.value = null
 }
 </script>
 
@@ -101,13 +131,39 @@ function addParam() {
         <p class="empty-hint">{{ t('results.emptyHint') }}</p>
         <p class="empty-general">{{ t('results.emptyGeneral') }}</p>
         <div class="empty-actions">
-          <div v-if="!comparison.variants.length" class="empty-section">
+          <!-- Варианты: карточки добавленных + кнопка добавления -->
+          <div class="empty-section">
+            <span class="empty-label">{{ t('results.variants') }}</span>
+            <button
+              v-for="v in comparison.variants"
+              :key="v.id"
+              type="button"
+              class="empty-card"
+              @click="openEditVariant(v)"
+            >
+              <span class="empty-card-name">{{ v.name }}</span>
+              <span class="empty-card-chevron">›</span>
+            </button>
             <NButton type="primary" block size="large" @click="openAddVariant" class="empty-btn">
               {{ t('results.addVariantBtn') }}
             </NButton>
             <p class="empty-desc">{{ t('results.emptyVariants') }}</p>
           </div>
-          <div v-if="!comparison.parameters.length" class="empty-section">
+          <!-- Параметры: карточки добавленных + кнопка добавления -->
+          <div class="empty-section">
+            <span class="empty-label">{{ t('results.parameters') }}</span>
+            <button
+              v-for="p in comparison.parameters"
+              :key="p.id"
+              type="button"
+              class="empty-card"
+              @click="openEditParam(p)"
+            >
+              <span class="empty-card-name">{{ p.name }}</span>
+              <span class="empty-card-badge">{{ p.parameterType === 'number' ? t('results.paramTypeNumber') : t('results.paramTypeText') }}</span>
+              <span class="empty-card-badge empty-card-weight">{{ p.weight }}</span>
+              <span class="empty-card-chevron">›</span>
+            </button>
             <NButton type="success" block size="large" @click="openAddParam" class="empty-btn">
               {{ t('results.addParamBtn') }}
             </NButton>
@@ -152,34 +208,34 @@ function addParam() {
 
     <NEmpty v-else :description="t('results.notFound')" class="empty" />
 
-    <NModal :show="showVariantModal" @update:show="showVariantModal = $event">
+    <NModal :show="showVariantModal" @update:show="(v) => { showVariantModal = v; if (!v) editingVariant.value = null }">
       <div class="modal-content">
-        <h3>{{ t('results.addVariant') }}</h3>
+        <h3>{{ editingVariant ? t('results.editVariant') : t('results.addVariant') }}</h3>
         <NForm>
           <NFormItem :label="t('comparisons.name')">
-            <NInput v-model:value="newVariantName" :placeholder="t('results.variantNamePlaceholder')" @keyup.enter="addVariant" />
+            <NInput v-model:value="newVariantName" :placeholder="t('results.variantNamePlaceholder')" @keyup.enter="saveVariant" />
           </NFormItem>
           <NSpace justify="end">
             <NButton @click="showVariantModal = false">{{ t('common.cancel') }}</NButton>
-            <NButton type="primary" :disabled="!newVariantName.trim()" @click="addVariant">{{ t('comparisons.create') }}</NButton>
+            <NButton type="primary" :disabled="!newVariantName.trim()" @click="saveVariant">{{ t('comparisons.create') }}</NButton>
           </NSpace>
         </NForm>
       </div>
     </NModal>
 
-    <NModal :show="showParamModal" @update:show="showParamModal = $event">
+    <NModal :show="showParamModal" @update:show="(v) => { showParamModal = v; if (!v) editingParam.value = null }">
       <div class="modal-content">
-        <h3>{{ t('results.addParam') }}</h3>
+        <h3>{{ editingParam ? t('results.editParam') : t('results.addParam') }}</h3>
         <NForm>
           <NFormItem :label="t('comparisons.name')">
-            <NInput v-model:value="newParamName" :placeholder="t('results.paramNamePlaceholder')" />
+            <NInput v-model:value="newParamName" :placeholder="t('results.paramNamePlaceholder')" @keyup.enter="saveParam" />
           </NFormItem>
           <NFormItem :label="t('results.weight')">
             <NInputNumber v-model:value="newParamWeight" :min="0" :max="10" />
           </NFormItem>
           <NSpace justify="end">
             <NButton @click="showParamModal = false">{{ t('common.cancel') }}</NButton>
-            <NButton type="primary" :disabled="!newParamName.trim()" @click="addParam">{{ t('comparisons.create') }}</NButton>
+            <NButton type="primary" :disabled="!newParamName.trim()" @click="saveParam">{{ t('comparisons.create') }}</NButton>
           </NSpace>
         </NForm>
       </div>
@@ -328,6 +384,7 @@ function addParam() {
   margin: 0 0 12px 0;
   color: var(--tg-theme-hint-color, #999);
   font-size: 0.95rem;
+  font-weight: 600;
   width: 100%;
 }
 
@@ -364,6 +421,50 @@ function addParam() {
   font-size: 0.85rem;
   color: var(--tg-theme-hint-color, #999);
   width: 100%;
+}
+
+.empty-label {
+  font-size: 0.75rem;
+  color: var(--tg-theme-hint-color, #999);
+  align-self: flex-start;
+}
+
+.empty-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.empty-card-name {
+  flex: 1;
+  font-weight: 600;
+  color: var(--tg-theme-text-color, #333);
+}
+
+.empty-card-badge {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255, 193, 7, 0.3);
+  color: var(--tg-theme-text-color, #333);
+}
+
+.empty-card-weight {
+  background: var(--tg-theme-hint-color, #e0e0e0);
+  opacity: 0.8;
+}
+
+.empty-card-chevron {
+  color: var(--tg-theme-hint-color, #999);
+  font-size: 1.2rem;
 }
 
 /* NEmpty для «сравнение не найдено» */
