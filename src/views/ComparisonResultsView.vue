@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import { recalculateTotalScores, findScoreFromCriteria } from '../utils/importExport'
 import ParameterEditForm from '../components/ParameterEditForm.vue'
 import type { Variant, Parameter, Value } from '../types'
-import type { ParameterFormData } from '../components/ParameterEditForm.vue'
+import type { ParameterFormData, VariantValue } from '../components/ParameterEditForm.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -175,19 +175,27 @@ function onParamFormSave(data: ParameterFormData) {
       criteria: data.criteria,
     })
     for (const v of c.variants) {
-      const val = data.variantValues[v.id]
-      if (val !== undefined && val !== '') {
-        const score = findScoreFromCriteria(data.criteria, val, data.parameterType)
-        store.setOrUpdateValue(c.id, v.id, editingParam.value!.id, typeof val === 'string' ? val : undefined, typeof val === 'number' ? val : undefined, score)
+      const vv = data.variantValues[v.id] as VariantValue | undefined
+      if (!vv) continue
+      const displayVal = data.parameterType === 'number'
+        ? (vv.numericValue ?? (vv.textValue && Number.isFinite(Number(vv.textValue)) ? Number(vv.textValue) : undefined))
+        : (vv.textValue ?? (vv.numericValue != null ? String(vv.numericValue) : undefined))
+      if (displayVal !== undefined && displayVal !== '') {
+        const score = findScoreFromCriteria(data.criteria, displayVal, data.parameterType)
+        store.setOrUpdateValue(c.id, v.id, editingParam.value!.id, vv.textValue, vv.numericValue, score)
       }
     }
   } else {
     const p = store.addParameter(c.id, data.name.trim(), data.weight, data.parameterType, data.unit || undefined, data.criteria)
     for (const v of c.variants) {
-      const val = data.variantValues[v.id]
-      if (val !== undefined && val !== '') {
-        const score = findScoreFromCriteria(data.criteria, val, data.parameterType)
-        store.setOrUpdateValue(c.id, v.id, p.id, typeof val === 'string' ? val : undefined, typeof val === 'number' ? val : undefined, score)
+      const vv = data.variantValues[v.id] as VariantValue | undefined
+      if (!vv) continue
+      const displayVal = data.parameterType === 'number'
+        ? (vv.numericValue ?? (vv.textValue && Number.isFinite(Number(vv.textValue)) ? Number(vv.textValue) : undefined))
+        : (vv.textValue ?? (vv.numericValue != null ? String(vv.numericValue) : undefined))
+      if (displayVal !== undefined && displayVal !== '') {
+        const score = findScoreFromCriteria(data.criteria, displayVal, data.parameterType)
+        store.setOrUpdateValue(c.id, v.id, p.id, vv.textValue, vv.numericValue, score)
       }
     }
   }

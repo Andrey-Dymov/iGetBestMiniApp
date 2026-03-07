@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, watch, TransitionGroup, nextTick } from 'vue'
 import {
   NForm,
   NFormItem,
   NInput,
   NInputNumber,
   NButton,
+  NIcon,
   NSpace,
   NRadioGroup,
   NRadioButton,
 } from 'naive-ui'
+import { AddOutline } from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
 import { findScoreFromCriteria } from '../utils/importExport'
 import type { Parameter, Criterion, Variant, Value } from '../types'
@@ -28,13 +30,18 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
+export interface VariantValue {
+  textValue?: string
+  numericValue?: number
+}
+
 export interface ParameterFormData {
   name: string
   unit: string
   parameterType: 'number' | 'text'
   weight: number
   criteria: Criterion[]
-  variantValues: Record<string, string | number | undefined>
+  variantValues: Record<string, VariantValue>
 }
 
 const name = ref('')
@@ -42,7 +49,7 @@ const unit = ref('')
 const paramType = ref<'number' | 'text'>('number')
 const weight = ref(5)
 const criteria = ref<Criterion[]>([])
-const variantValues = ref<Record<string, string | number | undefined>>({})
+const variantValues = ref<Record<string, VariantValue>>({})
 
 const TEMPLATES = {
   scale10: [
@@ -83,6 +90,7 @@ function applyTemplate(key: 'scale10' | 'scale100' | 'yesNo') {
     numericValue: 'numericValue' in c ? (c.numericValue as number) : undefined,
     score: c.score,
   }))
+  syncDisplayedCriteria()
 }
 
 function addCriterion() {
@@ -96,6 +104,8 @@ function addCriterion() {
     numericValue: paramType.value === 'number' ? Number(nextVal) : undefined,
     score: nextScore,
   })
+  sortCriteriaByType()
+  syncDisplayedCriteria()
 }
 
 function updateCriterion(cr: Criterion, updates: Partial<Criterion>) {
@@ -121,7 +131,8 @@ function onCriterionNumberInput(cr: Criterion, val: number | null) {
   } else {
     cr.numericValue = val
   }
-  // textValue и name не трогаем — сохраняем текстовую подпись («Низкий») для переключения обратно
+  sortCriteriaByType()
+  scheduleCriteriaReorder()
 }
 
 function sortCriteriaByType() {
@@ -138,33 +149,50 @@ function sortCriteriaByType() {
 function onParamTypeChange() {
   for (const cr of criteria.value) {
     if (paramType.value === 'text') {
-      // Переход на текстовой: если textValue пусто — берём число и переводим в строку
       if (!cr.textValue || cr.textValue.trim() === '') {
         cr.textValue = cr.numericValue != null ? String(cr.numericValue) : ''
         cr.name = cr.textValue
       }
-      // numericValue не стираем — пригодятся при обратном переключении
     } else {
-      // Переход на числовой: если textValue можно перевести в число — переводим
       const num = Number(cr.textValue)
       if (cr.textValue !== '' && Number.isFinite(num)) {
         cr.numericValue = num
       }
-      // Иначе оставляем существующий numericValue
+    }
+  }
+  for (const v of props.variants) {
+    const vv = variantValues.value[v.id]
+    if (!vv) continue
+    if (paramType.value === 'text') {
+      if (!vv.textValue || vv.textValue.trim() === '') {
+        vv.textValue = vv.numericValue != null ? String(vv.numericValue) : ''
+      }
+    } else {
+      const num = Number(vv.textValue)
+      if (vv.textValue !== '' && Number.isFinite(num)) {
+        vv.numericValue = num
+      }
     }
   }
   sortCriteriaByType()
+  syncDisplayedCriteria()
 }
 
 function removeCriterion(cr: Criterion) {
   criteria.value = criteria.value.filter((c) => c.id !== cr.id)
+  syncDisplayedCriteria()
 }
 
-function moveCriterion(from: number, to: number) {
-  const arr = [...sortedCriteria.value]
-  const [removed] = arr.splice(from, 1)
-  arr.splice(to, 0, removed!)
-  criteria.value = arr
+function getVariantDisplayValue(vv: VariantValue | undefined): string | number | undefined {
+  if (!vv) return undefined
+  if (paramType.value === 'number') {
+    if (vv.numericValue != null) return vv.numericValue
+    if (vv.textValue && Number.isFinite(Number(vv.textValue))) return Number(vv.textValue)
+    return undefined
+  }
+  if (vv.textValue) return vv.textValue
+  if (vv.numericValue != null) return String(vv.numericValue)
+  return undefined
 }
 
 function getScoreForValue(val: string | number | undefined): number {
@@ -172,13 +200,34 @@ function getScoreForValue(val: string | number | undefined): number {
   return findScoreFromCriteria(criteria.value, val, paramType.value)
 }
 
-const sortedCriteria = computed(() => {
+function getSortedCriteria(): Criterion[] {
   const arr = [...criteria.value]
   if (paramType.value === 'number') {
     return arr.sort((a, b) => (a.numericValue ?? 0) - (b.numericValue ?? 0))
   }
   return arr.sort((a, b) => a.score - b.score)
-})
+}
+
+const displayedCriteria = ref<Criterion[]>([])
+let criteriaReorderTimeout: ReturnType<typeof setTimeout> | null = null
+
+function syncDisplayedCriteria() {
+  displayedCriteria.value = getSortedCriteria()
+}
+
+function scheduleCriteriaReorder() {
+  if (criteriaReorderTimeout) clearTimeout(criteriaReorderTimeout)
+  criteriaReorderTimeout = setTimeout(() => {
+    syncDisplayedCriteria()
+    criteriaReorderTimeout = null
+  }, 1000)
+}
+
+function onScoreClick(cr: Criterion, score: number) {
+  updateCriterion(cr, { score })
+  sortCriteriaByType()
+  scheduleCriteriaReorder()
+}
 
 function normalizeParamType(v: string | undefined): 'number' | 'text' {
   return v === 'number' ? 'number' : 'text'
@@ -201,10 +250,11 @@ watch(
         }
         return cr
       })
-      const vals: Record<string, string | number | undefined> = {}
+      nextTick(() => syncDisplayedCriteria())
+      const vals: Record<string, VariantValue> = {}
       for (const v of props.variants) {
         const val = props.getValue(v.id, p.id)
-        vals[v.id] = val?.numericValue ?? val?.textValue
+        vals[v.id] = { textValue: val?.textValue, numericValue: val?.numericValue }
       }
       variantValues.value = vals
     } else {
@@ -213,6 +263,7 @@ watch(
       paramType.value = 'number'
       weight.value = 5
       criteria.value = []
+      displayedCriteria.value = []
       variantValues.value = {}
     }
   },
@@ -238,7 +289,7 @@ watch(
     for (const v of vars) {
       if (vals[v.id] === undefined) {
         const val = props.getValue(v.id, p.id)
-        vals[v.id] = val?.numericValue ?? val?.textValue
+        vals[v.id] = { textValue: val?.textValue, numericValue: val?.numericValue }
       }
     }
     variantValues.value = vals
@@ -299,6 +350,12 @@ function formatNumber(v: number | null): string {
         </NFormItem>
       </div>
       <div class="param-form-row">
+        <NFormItem :label="t('paramForm.type')">
+          <NRadioGroup :value="paramType || 'text'" @update:value="setParamType">
+            <NRadioButton value="number">{{ t('results.paramTypeNumber') }}</NRadioButton>
+            <NRadioButton value="text">{{ t('results.paramTypeText') }}</NRadioButton>
+          </NRadioGroup>
+        </NFormItem>
         <NFormItem :label="t('results.weight')">
           <NSpace align="center">
             <NButton size="small" :disabled="weight <= 1" @click="weight = Math.max(1, weight - 1)">−</NButton>
@@ -306,70 +363,62 @@ function formatNumber(v: number | null): string {
             <NButton size="small" :disabled="weight >= 10" @click="weight = Math.min(10, weight + 1)">+</NButton>
           </NSpace>
         </NFormItem>
-        <NFormItem :label="t('paramForm.type')">
-          <NRadioGroup :value="paramType || 'text'" @update:value="setParamType">
-            <NRadioButton value="number">{{ t('results.paramTypeNumber') }}</NRadioButton>
-            <NRadioButton value="text">{{ t('results.paramTypeText') }}</NRadioButton>
-          </NRadioGroup>
-        </NFormItem>
       </div>
     </div>
 
     <div class="param-form-block">
-      <h4 class="param-form-section-title">{{ t('paramForm.criteria') }}</h4>
+      <div class="param-form-section-header">
+        <h4 class="param-form-section-title">{{ t('paramForm.criteria') }}</h4>
+        <NButton @click="addCriterion">
+          <template #icon>
+            <NIcon><AddOutline /></NIcon>
+          </template>
+          {{ t('paramForm.criterionName') }}
+        </NButton>
+      </div>
     <div v-if="criteria.length === 0" class="param-templates">
       <span class="param-templates-label">{{ t('paramForm.template') }}:</span>
       <NButton size="small" @click="applyTemplate('scale10')">{{ t('paramForm.template10') }}</NButton>
       <NButton size="small" @click="applyTemplate('scale100')">{{ t('paramForm.template100') }}</NButton>
       <NButton size="small" @click="applyTemplate('yesNo')">{{ t('paramForm.templateYesNo') }}</NButton>
-      <NButton size="small" type="primary" @click="addCriterion">{{ t('paramForm.addCriterion') }}</NButton>
     </div>
-    <div v-else class="param-criteria-list">
-      <div v-for="cr in sortedCriteria" :key="cr.id" class="param-criterion-row">
-        <NInput
-          v-if="paramType === 'text'"
-          :value="cr.name || cr.textValue"
-          size="small"
-          :placeholder="t('paramForm.criterionName')"
-          :input-props="{ inputmode: 'text' }"
-          class="param-criterion-input"
-          @update:value="(v) => onCriterionInput(cr, v ?? '')"
-        />
-        <NInputNumber
-          v-else
-          :value="cr.numericValue ?? null"
-          size="small"
-          :placeholder="t('paramForm.valueNumber')"
-          :format="formatNumber"
-          clearable
-          class="param-criterion-input"
-          @update:value="(v) => onCriterionNumberInput(cr, v)"
-        />
-        <div class="param-criterion-scores">
-          <button
-            v-for="s in 11"
-            :key="s - 1"
-            type="button"
-            class="param-score-btn"
-            :class="['score-' + (s - 1), { active: cr.score === s - 1 }]"
-            @click="updateCriterion(cr, { score: s - 1 })"
-          >
-            {{ s - 1 }}
-          </button>
+    <div v-else>
+      <TransitionGroup name="criterion-move" tag="div" class="param-criteria-list">
+        <div v-for="cr in displayedCriteria" :key="cr.id" class="param-criterion-row">
+          <NInput
+            v-if="paramType === 'text'"
+            :value="cr.name || cr.textValue"
+            size="small"
+            :placeholder="t('paramForm.criterionName')"
+            :input-props="{ inputmode: 'text' }"
+            class="param-criterion-input"
+            @update:value="(v) => onCriterionInput(cr, v ?? '')"
+          />
+          <NInputNumber
+            v-else
+            :value="cr.numericValue ?? null"
+            size="small"
+            :placeholder="t('paramForm.valueNumber')"
+            :format="formatNumber"
+            clearable
+            class="param-criterion-input"
+            @update:value="(v) => onCriterionNumberInput(cr, v)"
+          />
+          <div class="param-criterion-scores">
+            <button
+              v-for="s in 11"
+              :key="s - 1"
+              type="button"
+              class="param-score-btn"
+              :class="['score-' + (s - 1), { active: cr.score === s - 1 }]"
+              @click="onScoreClick(cr, s - 1)"
+            >
+              {{ s - 1 }}
+            </button>
+          </div>
+          <NButton size="small" quaternary type="error" class="param-criterion-remove" @click="removeCriterion(cr)">×</NButton>
         </div>
-        <NButton size="small" quaternary type="error" class="param-criterion-remove" @click="removeCriterion(cr)">×</NButton>
-      </div>
-      <NSpace>
-        <NButton size="small" @click="addCriterion">{{ t('paramForm.addCriterion') }}</NButton>
-        <NButton
-          v-if="sortedCriteria.length > 1"
-          size="small"
-          quaternary
-          @click="moveCriterion(0, sortedCriteria.length - 1)"
-        >
-          ↑↓
-        </NButton>
-      </NSpace>
+      </TransitionGroup>
     </div>
     </div>
 
@@ -381,49 +430,49 @@ function formatNumber(v: number | null): string {
           <span class="param-variant-label">{{ v.name }}</span>
           <template v-if="paramType === 'number'">
             <NInputNumber
-              :value="typeof variantValues[v.id] === 'number' ? (variantValues[v.id] as number) : null"
+              :value="typeof getVariantDisplayValue(variantValues[v.id]) === 'number' ? getVariantDisplayValue(variantValues[v.id]) as number : null"
               size="small"
               :placeholder="t('paramForm.value')"
               :format="formatNumber"
               clearable
               class="param-variant-input"
-              @update:value="(val: number | null) => { variantValues[v.id] = val ?? undefined }"
+              @update:value="(val: number | null) => { variantValues[v.id] = { ...(variantValues[v.id] || {}), numericValue: val ?? undefined } }"
             />
             <span
-              v-if="variantValues[v.id] != null"
+              v-if="getVariantDisplayValue(variantValues[v.id]) != null"
               class="param-variant-badge"
-              :class="'score-badge-' + Math.min(10, Math.floor(getScoreForValue(variantValues[v.id])))"
+              :class="'score-badge-' + Math.min(10, Math.floor(getScoreForValue(getVariantDisplayValue(variantValues[v.id]))))"
             >
-              {{ (Math.round(getScoreForValue(variantValues[v.id]) * 10) / 10).toFixed(1) }}
+              {{ (Math.round(getScoreForValue(getVariantDisplayValue(variantValues[v.id])) * 10) / 10).toFixed(1) }}
             </span>
           </template>
           <template v-else>
-            <div v-if="sortedCriteria.length" class="param-variant-buttons">
+            <div v-if="displayedCriteria.length" class="param-variant-buttons">
               <button
-                v-for="cr in sortedCriteria"
+                v-for="cr in displayedCriteria"
                 :key="cr.id"
                 type="button"
                 class="param-criterion-btn"
-                :class="{ active: String(variantValues[v.id]).toLowerCase() === String(cr.textValue).toLowerCase() }"
-                @click="variantValues[v.id] = cr.textValue"
+                :class="['score-' + Math.min(10, Math.floor(cr.score)), { active: String(getVariantDisplayValue(variantValues[v.id])).toLowerCase() === String(cr.textValue).toLowerCase() }]"
+                @click="variantValues[v.id] = { ...(variantValues[v.id] || {}), textValue: cr.textValue }"
               >
                 {{ cr.name || cr.textValue }}
               </button>
             </div>
             <NInput
               v-else
-              :model-value="typeof variantValues[v.id] === 'string' ? variantValues[v.id] : ''"
+              :value="String(getVariantDisplayValue(variantValues[v.id]) ?? '')"
               size="small"
               :placeholder="t('paramForm.value')"
               class="param-variant-input"
-              @update:model-value="(val: string) => { variantValues[v.id] = val || undefined }"
+              @update:value="(val: string) => { variantValues[v.id] = { ...(variantValues[v.id] || {}), textValue: val || undefined } }"
             />
             <span
-              v-if="variantValues[v.id] != null && variantValues[v.id] !== ''"
+              v-if="getVariantDisplayValue(variantValues[v.id]) != null && getVariantDisplayValue(variantValues[v.id]) !== ''"
               class="param-variant-badge"
-              :class="'score-badge-' + Math.min(10, Math.floor(getScoreForValue(variantValues[v.id])))"
+              :class="'score-badge-' + Math.min(10, Math.floor(getScoreForValue(getVariantDisplayValue(variantValues[v.id]))))"
             >
-              {{ (Math.round(getScoreForValue(variantValues[v.id]) * 10) / 10).toFixed(1) }}
+              {{ (Math.round(getScoreForValue(getVariantDisplayValue(variantValues[v.id])) * 10) / 10).toFixed(1) }}
             </span>
           </template>
         </div>
@@ -478,6 +527,16 @@ function formatNumber(v: number | null): string {
   width: 80px;
 }
 
+.param-form-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.param-form-section-header .param-form-section-title {
+  margin: 0;
+}
 .param-form-section-title {
   margin: 0 0 12px 0;
   font-size: 0.95rem;
@@ -504,6 +563,9 @@ function formatNumber(v: number | null): string {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+.criterion-move-move {
+  transition: transform 0.5s ease;
 }
 .param-criterion-row {
   display: flex;
@@ -583,11 +645,11 @@ function formatNumber(v: number | null): string {
   max-width: 140px;
 }
 .param-variant-badge {
-  font-size: 0.8rem;
+  font-size: 0.56rem;
   font-weight: 600;
   color: #fff;
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
   flex-shrink: 0;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
 }
@@ -605,23 +667,37 @@ function formatNumber(v: number | null): string {
 .param-variant-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 3px;
   flex: 1;
   min-width: 0;
 }
 .param-criterion-btn {
-  padding: 6px 12px;
-  border: 1px solid var(--tg-theme-hint-color, #ccc);
-  border-radius: 8px;
-  background: var(--tg-theme-bg-color, #fff);
-  font-size: 0.85rem;
+  padding: 3px 6px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  font-size: 0.42rem;
   cursor: pointer;
+  color: rgba(255, 255, 255, 0.9);
+}
+.param-criterion-btn:not(.active) {
+  opacity: 0.5;
 }
 .param-criterion-btn.active {
-  background: var(--tg-theme-button-color, #18a058);
-  color: var(--tg-theme-button-text-color, #fff);
-  border-color: transparent;
+  opacity: 1;
+  border-color: rgba(0, 0, 0, 0.3);
+  color: #fff;
 }
+.param-criterion-btn.score-0 { background: #cc0000; }
+.param-criterion-btn.score-1 { background: #e64d00; }
+.param-criterion-btn.score-2 { background: #ff7f00; }
+.param-criterion-btn.score-3 { background: #ff9900; }
+.param-criterion-btn.score-4 { background: #e6b300; }
+.param-criterion-btn.score-5 { background: #ccb300; }
+.param-criterion-btn.score-6 { background: #99a600; }
+.param-criterion-btn.score-7 { background: #66a600; }
+.param-criterion-btn.score-8 { background: #33a600; }
+.param-criterion-btn.score-9 { background: #1a8c00; }
+.param-criterion-btn.score-10 { background: #006600; }
 .param-form-actions {
   margin-top: 20px;
 }
