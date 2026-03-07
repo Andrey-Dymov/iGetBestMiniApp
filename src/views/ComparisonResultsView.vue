@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import { recalculateTotalScores, findScoreFromCriteria } from '../utils/importExport'
 import ParameterEditForm from '../components/ParameterEditForm.vue'
 import VariantEditForm from '../components/VariantEditForm.vue'
+import ValueEditForm from '../components/ValueEditForm.vue'
 import type { Variant, Parameter, Value } from '../types'
 import type { ParameterFormData, VariantValue } from '../components/ParameterEditForm.vue'
 
@@ -19,8 +20,10 @@ const { t } = useI18n()
 const comparison = computed(() => store.getComparison(route.params.id as string))
 const showVariantModal = ref(false)
 const showParamModal = ref(false)
+const showValueEditModal = ref(false)
 const editingVariant = ref<Variant | null>(null)
 const editingParam = ref<Parameter | null>(null)
+const valueEditData = ref<{ variant: Variant; parameter: Parameter } | null>(null)
 const sortedVariants = computed(() => {
   const c = comparison.value
   if (!c) return []
@@ -159,6 +162,34 @@ function openEditParam(p: Parameter) {
   showParamModal.value = true
 }
 
+function openValueEdit(v: Variant, p: Parameter) {
+  valueEditData.value = { variant: v, parameter: p }
+  showValueEditModal.value = true
+}
+
+function onValueEditModalShow(visible: boolean) {
+  showValueEditModal.value = visible
+  if (!visible) valueEditData.value = null
+}
+
+function onValueEditSave(data: { textValue?: string; numericValue?: number }) {
+  const c = comparison.value
+  const ed = valueEditData.value
+  if (!c || !ed) return
+  const p = ed.parameter
+  const displayVal = p.parameterType === 'number'
+    ? data.numericValue
+    : data.textValue
+  const score =
+    p.parameterType === 'number'
+      ? findScoreFromCriteria(p.criteria ?? [], data.numericValue ?? 0, 'number')
+      : findScoreFromCriteria(p.criteria ?? [], data.textValue ?? '', 'text')
+  store.setOrUpdateValue(c.id, ed.variant.id, p.id, data.textValue, data.numericValue, score)
+  recalculateTotalScores(c)
+  showValueEditModal.value = false
+  valueEditData.value = null
+}
+
 function setParamWeight(p: Parameter, weight: number) {
   const c = comparison.value
   if (!c) return
@@ -232,6 +263,17 @@ function onParamFormSave(data: ParameterFormData) {
     }
   }
   recalculateTotalScores(c!)
+  showParamModal.value = false
+  editingParam.value = null
+}
+
+function onParamFormDelete() {
+  const c = comparison.value
+  const p = editingParam.value
+  if (!c || !p) return
+  if (!confirm(t('results.deleteParamConfirm'))) return
+  store.deleteParameter(c.id, p.id)
+  recalculateTotalScores(c)
   showParamModal.value = false
   editingParam.value = null
 }
@@ -343,7 +385,7 @@ function onParamFormSave(data: ParameterFormData) {
                     </div>
                   </div>
                 </td>
-                <td v-for="v in sortedVariants" :key="v.id" class="cell" @click="openEditParam(p)">
+                <td v-for="v in sortedVariants" :key="v.id" class="cell" @click="openValueEdit(v, p)">
                   <div class="cell-value">
                     <span>{{ formatCellValue(getValue(v.id, p.id)) }}</span>
                     <span
@@ -391,6 +433,21 @@ function onParamFormSave(data: ParameterFormData) {
           :is-new="!editingParam"
           @save="onParamFormSave"
           @cancel="showParamModal = false"
+          @delete="onParamFormDelete"
+        />
+      </div>
+    </NModal>
+
+    <NModal :show="showValueEditModal" @update:show="onValueEditModalShow">
+      <div class="modal-content modal-content-scroll">
+        <h3>{{ valueEditData?.variant?.name ?? '' }}</h3>
+        <ValueEditForm
+          v-if="valueEditData && comparison"
+          :variant="valueEditData.variant"
+          :parameter="valueEditData.parameter"
+          :existing-value="getValue(valueEditData.variant.id, valueEditData.parameter.id)"
+          @save="onValueEditSave"
+          @cancel="showValueEditModal = false"
         />
       </div>
     </NModal>
@@ -591,24 +648,25 @@ function onParamFormSave(data: ParameterFormData) {
 }
 
 .cell-score-badge {
-  font-size: 0.7rem;
+  font-size: 0.49rem;
   font-weight: 600;
-  color: #fff;
-  padding: 2px 6px;
-  border-radius: 6px;
+  line-height: 1.2;
+  color: #333;
+  padding: 1px 6px;
+  border-radius: 4px;
 }
 
-.cell-score-badge.score-0 { background: #cc0000; }
-.cell-score-badge.score-1 { background: #e64d00; }
-.cell-score-badge.score-2 { background: #ff8000; }
-.cell-score-badge.score-3 { background: #ff9900; }
-.cell-score-badge.score-4 { background: #e6b800; }
-.cell-score-badge.score-5 { background: #ccb300; }
-.cell-score-badge.score-6 { background: #99a600; }
-.cell-score-badge.score-7 { background: #66a600; }
-.cell-score-badge.score-8 { background: #33a600; }
-.cell-score-badge.score-9 { background: #1a8c00; }
-.cell-score-badge.score-10 { background: #006600; }
+.cell-score-badge.score-0 { background: rgba(204, 0, 0, 0.35); }
+.cell-score-badge.score-1 { background: rgba(230, 77, 0, 0.35); }
+.cell-score-badge.score-2 { background: rgba(255, 127, 0, 0.35); }
+.cell-score-badge.score-3 { background: rgba(255, 153, 0, 0.35); }
+.cell-score-badge.score-4 { background: rgba(230, 179, 0, 0.35); }
+.cell-score-badge.score-5 { background: rgba(204, 179, 0, 0.35); }
+.cell-score-badge.score-6 { background: rgba(153, 166, 0, 0.35); }
+.cell-score-badge.score-7 { background: rgba(102, 166, 0, 0.35); }
+.cell-score-badge.score-8 { background: rgba(51, 166, 0, 0.35); }
+.cell-score-badge.score-9 { background: rgba(26, 140, 0, 0.35); }
+.cell-score-badge.score-10 { background: rgba(0, 102, 0, 0.35); }
 
 .modal-content {
   padding: 24px;

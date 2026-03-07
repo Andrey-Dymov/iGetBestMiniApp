@@ -44,6 +44,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   save: [data: ParameterFormData]
   cancel: []
+  delete: []
 }>()
 
 const { t } = useI18n()
@@ -499,6 +500,10 @@ function cancel() {
   emit('cancel')
 }
 
+function doDelete() {
+  emit('delete')
+}
+
 function setParamType(v: string | number) {
   paramType.value = normalizeParamType(String(v))
   onParamTypeChange()
@@ -655,9 +660,13 @@ function formatNumber(v: number | null): string {
     </div>
     </template>
 
-    <NSpace justify="end" class="param-form-actions">
-      <NButton @click="cancel">{{ t('common.cancel') }}</NButton>
-      <NButton type="primary" :disabled="!name.trim()" @click="save">{{ isNew ? t('comparisons.create') : t('common.save') }}</NButton>
+    <NSpace justify="space-between" class="param-form-actions">
+      <NButton v-if="!isNew" type="error" quaternary @click="doDelete">{{ t('common.delete') }}</NButton>
+      <div v-else />
+      <NSpace>
+        <NButton @click="cancel">{{ t('common.cancel') }}</NButton>
+        <NButton type="primary" :disabled="!name.trim()" @click="save">{{ isNew ? t('comparisons.create') : t('common.save') }}</NButton>
+      </NSpace>
     </NSpace>
   </NForm>
 

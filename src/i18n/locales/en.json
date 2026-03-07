@@ -58,6 +58,7 @@
     "addParam": "Parameter",
     "editVariant": "Edit Option",
     "deleteVariantConfirm": "Delete option? All related scores will be removed.",
+    "deleteParamConfirm": "Delete parameter? All related scores will be removed.",
     "editParam": "Edit Parameter",
     "variantNamePlaceholder": "Option name",
     "paramNamePlaceholder": "Parameter name",

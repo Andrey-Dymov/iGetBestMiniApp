@@ -143,6 +143,15 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     save()
   }
 
+  function deleteParameter(comparisonId: string, parameterId: string) {
+    const c = getComparison(comparisonId)
+    if (!c) return
+    c.parameters = c.parameters.filter((x) => x.id !== parameterId)
+    c.values = c.values.filter((x) => x.parameterId !== parameterId)
+    c.modifiedDate = new Date().toISOString()
+    save()
+  }
+
   function addCriterion(comparisonId: string, parameterId: string, criterion: Omit<Criterion, 'id'>) {
     const c = getComparison(comparisonId)
     const p = c?.parameters.find((x) => x.id === parameterId)
@@ -361,6 +370,7 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     updateVariant,
     deleteVariant,
     updateParameter,
+    deleteParameter,
     addValue,
     setOrUpdateValue,
     addCriterion,
