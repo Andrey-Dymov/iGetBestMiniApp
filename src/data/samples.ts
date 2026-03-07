@@ -112,7 +112,7 @@ export const SAMPLE_NAMES = [
   'Кафе',
   'Жених',
   'Smartphone',
-  '咖啡馆',
+  '汽车',
 ] as const
 
 export function getSampleComparisons(): Comparison[] {
@@ -205,16 +205,17 @@ export function getSampleComparisons(): Comparison[] {
       'Жених',
       ['Александр', 'Максим', 'Артём'],
       [
-        { name: 'Чувство юмора', weight: 10, type: 'text', criteria: [{ name: 'Скучный', value: 'Скучный', score: 2 }, { name: 'Норма', value: 'Норма', score: 6 }, { name: 'Убивает', value: 'Убивает', score: 10 }] },
-        { name: 'Надёжность', weight: 9, type: 'text', criteria: [{ name: 'Низкая', value: 'Низкая', score: 2 }, { name: 'Средняя', value: 'Средняя', score: 6 }, { name: 'Высокая', value: 'Высокая', score: 10 }] },
+        { name: 'Статус', weight: 10, type: 'text', criteria: [{ name: 'Френдзона', value: 'Френдзона', score: 2 }, { name: 'Краш', value: 'Краш', score: 6 }, { name: 'В отношениях', value: 'В отношениях', score: 10 }] },
+        { name: 'Вайб', weight: 9, type: 'text', criteria: [{ name: 'Криповый', value: 'Криповый', score: 2 }, { name: 'Норм', value: 'Норм', score: 6 }, { name: 'Огонь', value: 'Огонь', score: 10 }] },
+        { name: 'Кринж', weight: 8, type: 'text', criteria: [{ name: 'Кринж', value: 'Кринж', score: 2 }, { name: 'Бывает', value: 'Бывает', score: 6 }, { name: 'Не кринж', value: 'Не кринж', score: 10 }] },
         { name: 'Доход', weight: 7, type: 'number', criteria: [{ name: 'Низкий', value: 50000, score: 3 }, { name: 'Средний', value: 120000, score: 7 }, { name: 'Высокий', value: 250000, score: 10 }] },
         { name: 'Жильё', weight: 6, type: 'text', criteria: [{ name: 'Снимает', value: 'Снимает', score: 3 }, { name: 'Ипотека', value: 'Ипотека', score: 6 }, { name: 'Своё', value: 'Своё', score: 10 }] },
-        { name: 'Готовность к компромиссам', weight: 8, type: 'text', criteria: [{ name: 'Упрямый', value: 'Упрямый', score: 3 }, { name: 'Иногда', value: 'Иногда', score: 6 }, { name: 'Всегда', value: 'Всегда', score: 10 }] },
+        { name: 'Гибкий', weight: 7, type: 'text', criteria: [{ name: 'Упрямый', value: 'Упрямый', score: 3 }, { name: 'Бывает', value: 'Бывает', score: 6 }, { name: 'Всегда', value: 'Всегда', score: 10 }] },
       ],
       {
-        'Александр': { 'Чувство юмора': 'Убивает', 'Надёжность': 'Высокая', 'Доход': 180000, 'Жильё': 'Своё', 'Готовность к компромиссам': 'Иногда' },
-        'Максим': { 'Чувство юмора': 'Норма', 'Надёжность': 'Высокая', 'Доход': 95000, 'Жильё': 'Ипотека', 'Готовность к компромиссам': 'Всегда' },
-        'Артём': { 'Чувство юмора': 'Убивает', 'Надёжность': 'Средняя', 'Доход': 140000, 'Жильё': 'Своё', 'Готовность к компромиссам': 'Всегда' },
+        'Александр': { 'Статус': 'В отношениях', 'Вайб': 'Огонь', 'Кринж': 'Не кринж', 'Доход': 180000, 'Жильё': 'Своё', 'Гибкий': 'Бывает' },
+        'Максим': { 'Статус': 'Краш', 'Вайб': 'Норм', 'Кринж': 'Не кринж', 'Доход': 95000, 'Жильё': 'Ипотека', 'Гибкий': 'Всегда' },
+        'Артём': { 'Статус': 'Краш', 'Вайб': 'Огонь', 'Кринж': 'Бывает', 'Доход': 140000, 'Жильё': 'Своё', 'Гибкий': 'Всегда' },
       }
     ),
     createSampleComparison(
@@ -232,17 +233,17 @@ export function getSampleComparisons(): Comparison[] {
       }
     ),
     createSampleComparison(
-      '咖啡馆',
-      ['星巴克', '瑞幸', 'Manner'],
+      '汽车',
+      ['理想 L9', 'Zeekr 9X', 'Voyah Taishan'],
       [
-        { name: '价格', weight: 8, type: 'number', criteria: [{ name: '贵', value: 50, score: 3 }, { name: '中', value: 25, score: 7 }, { name: '便宜', value: 10, score: 10 }] },
-        { name: '氛围', weight: 9, type: 'text', criteria: [{ name: '一般', value: '一般', score: 5 }, { name: '舒适', value: '舒适', score: 8 }, { name: '很棒', value: '很棒', score: 10 }] },
-        { name: '距离', weight: 6, type: 'number', criteria: [{ name: '远', value: 30, score: 3 }, { name: '中', value: 15, score: 7 }, { name: '近', value: 5, score: 10 }] },
+        { name: '价格', weight: 8, type: 'number', criteria: [{ name: '贵', value: 500000, score: 2 }, { name: '中', value: 420000, score: 7 }, { name: '实惠', value: 350000, score: 10 }] },
+        { name: '续航', weight: 9, type: 'number', criteria: [{ name: '短', value: 800, score: 4 }, { name: '中', value: 1200, score: 7 }, { name: '长', value: 1450, score: 10 }] },
+        { name: '舒适度', weight: 8, type: 'text', criteria: [{ name: '一般', value: '一般', score: 5 }, { name: '好', value: '好', score: 8 }, { name: '优秀', value: '优秀', score: 10 }] },
       ],
       {
-        '星巴克': { '价格': 35, '氛围': '舒适', '距离': 12 },
-        '瑞幸': { '价格': 15, '氛围': '一般', '距离': 3 },
-        'Manner': { '价格': 20, '氛围': '很棒', '距离': 8 },
+        '理想 L9': { '价格': 429800, '续航': 1412, '舒适度': '优秀' },
+        'Zeekr 9X': { '价格': 465900, '续航': 800, '舒适度': '好' },
+        'Voyah Taishan': { '价格': 379900, '续航': 1400, '舒适度': '好' },
       }
     ),
   ]

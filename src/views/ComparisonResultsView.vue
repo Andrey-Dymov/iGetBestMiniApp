@@ -292,7 +292,7 @@ function saveParam() {
 .results-table th,
 .results-table td {
   padding: 10px 12px;
-  border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+  border-bottom: 1px solid #999 !important;
   vertical-align: middle;
 }
 
@@ -327,17 +327,22 @@ function saveParam() {
 
 .param-header {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.param-name {
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   font-weight: 600;
   line-height: 1.2;
 }
 
+.param-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .param-weight {
-  font-size: 0.8em;
+  flex-shrink: 0;
+  font-weight: 500;
   color: var(--tg-theme-hint-color, #999);
 }
 
@@ -347,6 +352,8 @@ function saveParam() {
 
 .cell-value {
   min-height: 1.2em;
+  line-height: 32px;
+  font-weight: 600;
 }
 
 .modal-content {
