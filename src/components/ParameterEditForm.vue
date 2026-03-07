@@ -192,28 +192,34 @@ function cancel() {
 
 <template>
   <NForm label-placement="top" class="param-form">
-    <h4 class="param-form-section">{{ t('paramForm.basicInfo') }}</h4>
-    <NFormItem :label="t('comparisons.name')">
-      <NInput v-model:value="name" :placeholder="t('results.paramNamePlaceholder')" />
-    </NFormItem>
-    <NFormItem :label="t('paramForm.unit')">
-      <NInput v-model:value="unit" :placeholder="t('paramForm.unitPlaceholder')" />
-    </NFormItem>
-    <NFormItem :label="t('results.weight')">
-      <NSpace align="center">
-        <NButton size="small" :disabled="weight <= 1" @click="weight = Math.max(1, weight - 1)">−</NButton>
-        <span class="param-weight-value">{{ weight }}</span>
-        <NButton size="small" :disabled="weight >= 10" @click="weight = Math.min(10, weight + 1)">+</NButton>
-      </NSpace>
-    </NFormItem>
-    <NFormItem>
-      <NRadioGroup v-model:value="paramType">
-        <NRadioButton value="number">{{ t('results.paramTypeNumber') }}</NRadioButton>
-        <NRadioButton value="text">{{ t('results.paramTypeText') }}</NRadioButton>
-      </NRadioGroup>
-    </NFormItem>
+    <div class="param-form-block param-form-block-basic">
+      <div class="param-form-row param-form-row-name-unit">
+        <NFormItem :label="t('comparisons.name')" class="param-form-item-name">
+          <NInput v-model:value="name" :placeholder="t('results.paramNamePlaceholder')" />
+        </NFormItem>
+        <NFormItem :label="t('paramForm.unitShort')" class="param-form-item-unit">
+          <NInput v-model:value="unit" :placeholder="t('paramForm.unitPlaceholder')" />
+        </NFormItem>
+      </div>
+      <div class="param-form-row">
+        <NFormItem :label="t('results.weight')">
+          <NSpace align="center">
+            <NButton size="small" :disabled="weight <= 1" @click="weight = Math.max(1, weight - 1)">−</NButton>
+            <span class="param-weight-value">{{ weight }}</span>
+            <NButton size="small" :disabled="weight >= 10" @click="weight = Math.min(10, weight + 1)">+</NButton>
+          </NSpace>
+        </NFormItem>
+        <NFormItem :label="t('paramForm.type')">
+          <NRadioGroup v-model:value="paramType">
+            <NRadioButton value="number">{{ t('results.paramTypeNumber') }}</NRadioButton>
+            <NRadioButton value="text">{{ t('results.paramTypeText') }}</NRadioButton>
+          </NRadioGroup>
+        </NFormItem>
+      </div>
+    </div>
 
-    <h4 class="param-form-section">{{ t('paramForm.criteria') }}</h4>
+    <div class="param-form-block">
+      <h4 class="param-form-section-title">{{ t('paramForm.criteria') }}</h4>
     <div v-if="criteria.length === 0" class="param-templates">
       <span class="param-templates-label">{{ t('paramForm.template') }}:</span>
       <NButton size="small" @click="applyTemplate('scale10')">{{ t('paramForm.template10') }}</NButton>
@@ -236,13 +242,13 @@ function cancel() {
             :key="s - 1"
             type="button"
             class="param-score-btn"
-            :class="{ active: cr.score === s - 1 }"
+            :class="['score-' + (s - 1), { active: cr.score === s - 1 }]"
             @click="updateCriterion(cr, { score: s - 1 })"
           >
             {{ s - 1 }}
           </button>
         </div>
-        <NButton size="small" quaternary type="error" @click="removeCriterion(cr)">×</NButton>
+        <NButton size="small" quaternary type="error" class="param-criterion-remove" @click="removeCriterion(cr)">×</NButton>
       </div>
       <NSpace>
         <NButton size="small" @click="addCriterion">{{ t('paramForm.addCriterion') }}</NButton>
@@ -256,10 +262,12 @@ function cancel() {
         </NButton>
       </NSpace>
     </div>
+    </div>
 
     <template v-if="parameter && variants.length > 0">
-      <h4 class="param-form-section">{{ t('paramForm.variants') }}</h4>
-      <div class="param-variants-grid">
+      <div class="param-form-block">
+        <h4 class="param-form-section-title">{{ t('paramForm.scoresVariants') }}</h4>
+        <div class="param-variants-grid">
         <div v-for="v in variants" :key="v.id" class="param-variant-cell">
           <span class="param-variant-label">{{ v.name }}</span>
           <template v-if="paramType === 'number'">
@@ -271,8 +279,12 @@ function cancel() {
               class="param-variant-input"
               @update:model-value="(val: number | null) => { variantValues[v.id] = val ?? undefined }"
             />
-            <span v-if="variantValues[v.id] != null" class="param-variant-badge">
-              {{ getScoreForValue(variantValues[v.id]) }}
+            <span
+              v-if="variantValues[v.id] != null"
+              class="param-variant-badge"
+              :class="'score-badge-' + Math.min(10, Math.floor(getScoreForValue(variantValues[v.id])))"
+            >
+              {{ (Math.round(getScoreForValue(variantValues[v.id]) * 10) / 10).toFixed(1) }}
             </span>
           </template>
           <template v-else>
@@ -296,9 +308,17 @@ function cancel() {
               class="param-variant-input"
               @update:model-value="(val: string) => { variantValues[v.id] = val || undefined }"
             />
+            <span
+              v-if="variantValues[v.id] != null && variantValues[v.id] !== ''"
+              class="param-variant-badge"
+              :class="'score-badge-' + Math.min(10, Math.floor(getScoreForValue(variantValues[v.id])))"
+            >
+              {{ (Math.round(getScoreForValue(variantValues[v.id]) * 10) / 10).toFixed(1) }}
+            </span>
           </template>
         </div>
       </div>
+    </div>
     </template>
 
     <NSpace justify="end" class="param-form-actions">
@@ -312,11 +332,51 @@ function cancel() {
 .param-form {
   max-width: 100%;
 }
-.param-form-section {
-  margin: 16px 0 8px 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--tg-theme-hint-color, #666);
+
+.param-form-block {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid var(--tg-theme-hint-color, rgba(0, 0, 0, 0.12));
+  border-radius: 10px;
+  background: var(--tg-theme-secondary-bg-color, rgba(0, 0, 0, 0.03));
+}
+
+.param-form-block:first-child {
+  margin-top: 0;
+}
+
+.param-form-block-basic {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.param-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.param-form-row-name-unit {
+  gap: 16px;
+}
+
+.param-form-item-name {
+  flex: 1;
+  min-width: 120px;
+}
+
+.param-form-item-unit {
+  flex: 0 0 auto;
+  width: 80px;
+}
+
+.param-form-section-title {
+  margin: 0 0 12px 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--tg-theme-text-color, #333);
 }
 .param-weight-value {
   min-width: 2ch;
@@ -343,32 +403,56 @@ function cancel() {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow-x: auto;
 }
 .param-criterion-input {
   flex: 1;
-  min-width: 80px;
+  min-width: 60px;
+  max-width: 120px;
 }
 .param-criterion-scores {
   display: flex;
   gap: 2px;
-  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.param-criterion-remove {
+  flex-shrink: 0;
 }
 .param-score-btn {
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--tg-theme-hint-color, #ccc);
-  border-radius: 6px;
-  background: var(--tg-theme-bg-color, #fff);
-  font-size: 0.8rem;
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+  font-size: 0.55rem;
+  line-height: 12px;
   cursor: pointer;
   padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.9);
+}
+.param-score-btn:not(.active) {
+  opacity: 0.5;
 }
 .param-score-btn.active {
-  background: var(--tg-theme-button-color, #18a058);
-  color: var(--tg-theme-button-text-color, #fff);
-  border-color: transparent;
+  opacity: 1;
+  border-color: rgba(0, 0, 0, 0.3);
+  color: #fff;
 }
+.param-score-btn.score-0 { background: #cc0000; }
+.param-score-btn.score-1 { background: #e64d00; }
+.param-score-btn.score-2 { background: #ff7f00; }
+.param-score-btn.score-3 { background: #ff9900; }
+.param-score-btn.score-4 { background: #e6b300; }
+.param-score-btn.score-5 { background: #ccb300; }
+.param-score-btn.score-6 { background: #99a600; }
+.param-score-btn.score-7 { background: #66a600; }
+.param-score-btn.score-8 { background: #33a600; }
+.param-score-btn.score-9 { background: #1a8c00; }
+.param-score-btn.score-10 { background: #006600; }
 .param-variants-grid {
   display: flex;
   flex-direction: column;
@@ -376,24 +460,48 @@ function cancel() {
 }
 .param-variant-cell {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .param-variant-label {
   font-size: 0.85rem;
   font-weight: 600;
+  flex-shrink: 0;
+  min-width: 80px;
 }
 .param-variant-input {
+  flex: 1;
+  min-width: 80px;
   max-width: 140px;
 }
 .param-variant-badge {
   font-size: 0.8rem;
-  color: var(--tg-theme-hint-color, #666);
+  font-weight: 600;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
 }
+.param-variant-badge.score-badge-0 { background: #cc0000; }
+.param-variant-badge.score-badge-1 { background: #e64d00; }
+.param-variant-badge.score-badge-2 { background: #ff7f00; }
+.param-variant-badge.score-badge-3 { background: #ff9900; }
+.param-variant-badge.score-badge-4 { background: #e6b300; }
+.param-variant-badge.score-badge-5 { background: #ccb300; }
+.param-variant-badge.score-badge-6 { background: #99a600; }
+.param-variant-badge.score-badge-7 { background: #66a600; }
+.param-variant-badge.score-badge-8 { background: #33a600; }
+.param-variant-badge.score-badge-9 { background: #1a8c00; }
+.param-variant-badge.score-badge-10 { background: #006600; }
 .param-variant-buttons {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  flex: 1;
+  min-width: 0;
 }
 .param-criterion-btn {
   padding: 6px 12px;

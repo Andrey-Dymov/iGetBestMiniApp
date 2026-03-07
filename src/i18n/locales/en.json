@@ -67,7 +67,9 @@
   "paramForm": {
     "basicInfo": "Basic info",
     "unit": "Unit",
+    "unitShort": "Unit",
     "unitPlaceholder": "₽, kg, m²",
+    "type": "Type",
     "criteria": "Criteria",
     "addCriterion": "Add criterion",
     "template": "Template",
@@ -77,6 +79,7 @@
     "yes": "Yes",
     "no": "No",
     "variants": "Variants",
+    "scoresVariants": "Scores",
     "score": "Score",
     "sort": "Sort",
     "value": "Value",

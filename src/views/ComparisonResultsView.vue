@@ -436,6 +436,12 @@ function onParamFormSave(data: ParameterFormData) {
   justify-content: flex-start;
 }
 
+@media (max-width: 640px) {
+  .table-actions {
+    flex-direction: column;
+  }
+}
+
 .variant-col {
   min-width: 90px;
   text-align: center;

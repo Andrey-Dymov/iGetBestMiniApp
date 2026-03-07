@@ -67,7 +67,9 @@
   "paramForm": {
     "basicInfo": "Основная информация",
     "unit": "Единицы измерения",
+    "unitShort": "Ед.",
     "unitPlaceholder": "₽, кг, м²",
+    "type": "Тип",
     "criteria": "Критерии",
     "addCriterion": "Добавить критерий",
     "template": "Шаблон",
@@ -77,6 +79,7 @@
     "yes": "Да",
     "no": "Нет",
     "variants": "Варианты",
+    "scoresVariants": "Оценки",
     "score": "Оценка",
     "sort": "Сортировка",
     "value": "Значение",
