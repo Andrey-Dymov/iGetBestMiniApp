@@ -133,7 +133,7 @@ function saveParam() {
         <div class="empty-actions">
           <!-- Варианты: карточки добавленных + кнопка добавления -->
           <div class="empty-section">
-            <span class="empty-label">{{ t('results.variants') }}</span>
+            <span v-if="comparison.variants.length" class="empty-label">{{ t('results.variants') }}</span>
             <button
               v-for="v in comparison.variants"
               :key="v.id"
@@ -151,7 +151,7 @@ function saveParam() {
           </div>
           <!-- Параметры: карточки добавленных + кнопка добавления -->
           <div class="empty-section">
-            <span class="empty-label">{{ t('results.parameters') }}</span>
+            <span v-if="comparison.parameters.length" class="empty-label">{{ t('results.parameters') }}</span>
             <button
               v-for="p in comparison.parameters"
               :key="p.id"
