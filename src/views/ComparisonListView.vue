@@ -29,6 +29,7 @@ import { useI18n } from 'vue-i18n'
 import { useMessage } from 'naive-ui'
 import type { Comparison } from '../types'
 import { i18n, LOCALES } from '../i18n'
+import { getSampleComparisons } from '../data/samples'
 import type { DropdownOption } from 'naive-ui'
 
 const router = useRouter()
@@ -107,8 +108,11 @@ function sortedVariants(c: { variants: { id: string; name: string; totalScore: n
   return [...c.variants].sort((a, b) => b.totalScore - a.totalScore)
 }
 
-function parameterNames(c: { parameters: { name: string }[] }) {
-  return c.parameters.map((p) => p.name).join(' · ')
+function parameterNames(c: { parameters: { name: string; weight: number }[] }) {
+  return [...c.parameters]
+    .sort((a, b) => b.weight - a.weight)
+    .map((p) => p.name)
+    .join(' · ')
 }
 
 function hasAnyImages(c: Comparison): boolean {
@@ -130,21 +134,34 @@ function getMenuOptions(): DropdownOption[] {
   ]
 }
 
-const addMenuOptions = computed<DropdownOption[]>(() => [
-  { label: t('list.importJson'), key: 'importJson', icon: renderIcon(DocumentTextOutline) },
-  { label: t('list.importCompact'), key: 'importCompact', icon: renderIcon(DocumentOutline) },
-  {
-    label: t('comparisons.addSamples'),
-    key: 'addSamples',
-    icon: renderIcon(AddCircleOutline),
-    disabled: store.hasAllSamples(),
-  },
-])
+const addMenuOptions = computed<DropdownOption[]>(() => {
+  const samples = getSampleComparisons()
+  const existingNames = new Set(store.comparisons.map((c) => c.name))
+  return [
+    { label: t('list.importJson'), key: 'importJson', icon: renderIcon(DocumentTextOutline) },
+    { label: t('list.importCompact'), key: 'importCompact', icon: renderIcon(DocumentOutline) },
+    {
+      label: t('comparisons.addSamples'),
+      key: 'addSamples',
+      icon: renderIcon(AddCircleOutline),
+      children: [
+        { label: t('comparisons.addAllSamples'), key: 'addAllSamples' },
+        { type: 'divider' as const },
+        ...samples.map((s) => ({
+          label: s.name,
+          key: `sample:${s.name}`,
+          disabled: existingNames.has(s.name),
+        })),
+      ],
+    },
+  ]
+})
 
 function handleAddMenuSelect(key: string) {
   if (key === 'importJson') importFromClipboardJson()
   else if (key === 'importCompact') showImportCompactModal.value = true
-  else if (key === 'addSamples') addSamples()
+  else if (key === 'addAllSamples') addSamples()
+  else if (key.startsWith('sample:')) addSingleSample(key.slice(7))
 }
 
 function handleMenuSelect(key: string, c: Comparison) {
@@ -222,6 +239,16 @@ function addSamples() {
   const added = store.addSampleData()
   if (added > 0) {
     message.success(t('comparisons.samplesAdded', { count: added }))
+  } else {
+    message.info(t('comparisons.samplesAlreadyExist'))
+  }
+}
+
+function addSingleSample(name: string) {
+  const c = store.addSingleSample(name)
+  if (c) {
+    message.success(t('list.importSuccess', { name }))
+    router.push(`/comparisons/${c.id}`)
   } else {
     message.info(t('comparisons.samplesAlreadyExist'))
   }

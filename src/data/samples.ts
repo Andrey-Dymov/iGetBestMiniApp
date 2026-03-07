@@ -104,16 +104,21 @@ export function createSampleComparison(
 }
 
 export const SAMPLE_NAMES = [
-  'Выбор телевизора',
-  'Выбор телефона',
-  'Выбор курорта',
-  'Выбор сотрудника',
+  'Телевизор',
+  'Телефон',
+  'Курорт',
+  'Сотрудник',
+  'Образ',
+  'Кафе',
+  'Жених',
+  'Smartphone',
+  '咖啡馆',
 ] as const
 
 export function getSampleComparisons(): Comparison[] {
   return [
     createSampleComparison(
-      'Выбор телевизора',
+      'Телевизор',
       ['Samsung QLED', 'LG OLED', 'Sony Bravia'],
       [
         { name: 'Цена', weight: 8, type: 'number', criteria: [{ name: 'Дорого', value: 150000, score: 3 }, { name: 'Средне', value: 80000, score: 7 }, { name: 'Доступно', value: 40000, score: 10 }] },
@@ -127,7 +132,7 @@ export function getSampleComparisons(): Comparison[] {
       }
     ),
     createSampleComparison(
-      'Выбор телефона',
+      'Телефон',
       ['iPhone 15', 'Samsung Galaxy S24', 'Xiaomi 14'],
       [
         { name: 'Цена', weight: 8, type: 'number', criteria: [{ name: 'Дорого', value: 100000, score: 2 }, { name: 'Средне', value: 60000, score: 7 }, { name: 'Доступно', value: 35000, score: 10 }] },
@@ -141,7 +146,7 @@ export function getSampleComparisons(): Comparison[] {
       }
     ),
     createSampleComparison(
-      'Выбор курорта',
+      'Курорт',
       ['Турция', 'Греция', 'Мальдивы'],
       [
         { name: 'Цена', weight: 8, type: 'number', criteria: [{ name: 'Дорого', value: 300000, score: 2 }, { name: 'Средне', value: 150000, score: 7 }, { name: 'Доступно', value: 80000, score: 10 }] },
@@ -155,7 +160,7 @@ export function getSampleComparisons(): Comparison[] {
       }
     ),
     createSampleComparison(
-      'Выбор сотрудника',
+      'Сотрудник',
       ['Алексей', 'Мария', 'Дмитрий'],
       [
         { name: 'Опыт', weight: 9, type: 'number', criteria: [{ name: '1 год', value: 1, score: 3 }, { name: '3 года', value: 3, score: 6 }, { name: '5+ лет', value: 5, score: 10 }] },
@@ -166,6 +171,78 @@ export function getSampleComparisons(): Comparison[] {
         'Алексей': { 'Опыт': 4, 'Коммуникация': 'Хорошая', 'Надёжность': 'Высокая' },
         'Мария': { 'Опыт': 6, 'Коммуникация': 'Отличная', 'Надёжность': 'Высокая' },
         'Дмитрий': { 'Опыт': 2, 'Коммуникация': 'Хорошая', 'Надёжность': 'Средняя' },
+      }
+    ),
+    createSampleComparison(
+      'Образ',
+      ['Платье', 'Комбинезон', 'Пальто'],
+      [
+        { name: 'Цена', weight: 7, type: 'number', criteria: [{ name: 'Дорого', value: 15000, score: 3 }, { name: 'Средне', value: 7000, score: 7 }, { name: 'Доступно', value: 3000, score: 10 }] },
+        { name: 'Удобство', weight: 9, type: 'text', criteria: [{ name: 'Средне', value: 'Средне', score: 5 }, { name: 'Хорошо', value: 'Хорошо', score: 8 }, { name: 'Отлично', value: 'Отлично', score: 10 }] },
+        { name: 'Универсальность', weight: 8, type: 'text', criteria: [{ name: 'Ограничена', value: 'Ограничена', score: 4 }, { name: 'Норма', value: 'Норма', score: 7 }, { name: 'Подходит везде', value: 'Подходит везде', score: 10 }] },
+      ],
+      {
+        'Платье': { 'Цена': 5500, 'Удобство': 'Отлично', 'Универсальность': 'Подходит везде' },
+        'Комбинезон': { 'Цена': 8900, 'Удобство': 'Хорошо', 'Универсальность': 'Норма' },
+        'Пальто': { 'Цена': 12000, 'Удобство': 'Отлично', 'Универсальность': 'Подходит везде' },
+      }
+    ),
+    createSampleComparison(
+      'Кафе',
+      ['Кофейня у парка', 'Булочная на углу', 'Лофт-кафе'],
+      [
+        { name: 'Цена', weight: 8, type: 'number', criteria: [{ name: 'Дорого', value: 800, score: 3 }, { name: 'Средне', value: 400, score: 7 }, { name: 'Дёшево', value: 200, score: 10 }] },
+        { name: 'Атмосфера', weight: 9, type: 'text', criteria: [{ name: 'Обычная', value: 'Обычная', score: 5 }, { name: 'Уютная', value: 'Уютная', score: 8 }, { name: 'Топ', value: 'Топ', score: 10 }] },
+        { name: 'Удалённость', weight: 6, type: 'number', criteria: [{ name: 'Далеко', value: 30, score: 3 }, { name: 'Средне', value: 15, score: 7 }, { name: 'Рядом', value: 5, score: 10 }] },
+      ],
+      {
+        'Кофейня у парка': { 'Цена': 450, 'Атмосфера': 'Уютная', 'Удалённость': 12 },
+        'Булочная на углу': { 'Цена': 250, 'Атмосфера': 'Обычная', 'Удалённость': 3 },
+        'Лофт-кафе': { 'Цена': 650, 'Атмосфера': 'Топ', 'Удалённость': 20 },
+      }
+    ),
+    createSampleComparison(
+      'Жених',
+      ['Александр', 'Максим', 'Артём'],
+      [
+        { name: 'Чувство юмора', weight: 10, type: 'text', criteria: [{ name: 'Скучный', value: 'Скучный', score: 2 }, { name: 'Норма', value: 'Норма', score: 6 }, { name: 'Убивает', value: 'Убивает', score: 10 }] },
+        { name: 'Надёжность', weight: 9, type: 'text', criteria: [{ name: 'Низкая', value: 'Низкая', score: 2 }, { name: 'Средняя', value: 'Средняя', score: 6 }, { name: 'Высокая', value: 'Высокая', score: 10 }] },
+        { name: 'Доход', weight: 7, type: 'number', criteria: [{ name: 'Низкий', value: 50000, score: 3 }, { name: 'Средний', value: 120000, score: 7 }, { name: 'Высокий', value: 250000, score: 10 }] },
+        { name: 'Жильё', weight: 6, type: 'text', criteria: [{ name: 'Снимает', value: 'Снимает', score: 3 }, { name: 'Ипотека', value: 'Ипотека', score: 6 }, { name: 'Своё', value: 'Своё', score: 10 }] },
+        { name: 'Готовность к компромиссам', weight: 8, type: 'text', criteria: [{ name: 'Упрямый', value: 'Упрямый', score: 3 }, { name: 'Иногда', value: 'Иногда', score: 6 }, { name: 'Всегда', value: 'Всегда', score: 10 }] },
+      ],
+      {
+        'Александр': { 'Чувство юмора': 'Убивает', 'Надёжность': 'Высокая', 'Доход': 180000, 'Жильё': 'Своё', 'Готовность к компромиссам': 'Иногда' },
+        'Максим': { 'Чувство юмора': 'Норма', 'Надёжность': 'Высокая', 'Доход': 95000, 'Жильё': 'Ипотека', 'Готовность к компромиссам': 'Всегда' },
+        'Артём': { 'Чувство юмора': 'Убивает', 'Надёжность': 'Средняя', 'Доход': 140000, 'Жильё': 'Своё', 'Готовность к компромиссам': 'Всегда' },
+      }
+    ),
+    createSampleComparison(
+      'Smartphone',
+      ['iPhone 15', 'Samsung Galaxy S24', 'Google Pixel 8'],
+      [
+        { name: 'Price', weight: 8, type: 'number', criteria: [{ name: 'Expensive', value: 900, score: 2 }, { name: 'Mid', value: 600, score: 7 }, { name: 'Affordable', value: 350, score: 10 }] },
+        { name: 'Camera', weight: 9, type: 'text', criteria: [{ name: 'Average', value: 'Average', score: 5 }, { name: 'Good', value: 'Good', score: 8 }, { name: 'Top', value: 'Top', score: 10 }] },
+        { name: 'Battery', weight: 7, type: 'number', criteria: [{ name: '3000', value: 3000, score: 4 }, { name: '4000', value: 4000, score: 7 }, { name: '5000', value: 5000, score: 10 }] },
+      ],
+      {
+        'iPhone 15': { 'Price': 799, 'Camera': 'Top', 'Battery': 3349 },
+        'Samsung Galaxy S24': { 'Price': 699, 'Camera': 'Good', 'Battery': 4000 },
+        'Google Pixel 8': { 'Price': 549, 'Camera': 'Top', 'Battery': 4575 },
+      }
+    ),
+    createSampleComparison(
+      '咖啡馆',
+      ['星巴克', '瑞幸', 'Manner'],
+      [
+        { name: '价格', weight: 8, type: 'number', criteria: [{ name: '贵', value: 50, score: 3 }, { name: '中', value: 25, score: 7 }, { name: '便宜', value: 10, score: 10 }] },
+        { name: '氛围', weight: 9, type: 'text', criteria: [{ name: '一般', value: '一般', score: 5 }, { name: '舒适', value: '舒适', score: 8 }, { name: '很棒', value: '很棒', score: 10 }] },
+        { name: '距离', weight: 6, type: 'number', criteria: [{ name: '远', value: 30, score: 3 }, { name: '中', value: 15, score: 7 }, { name: '近', value: 5, score: 10 }] },
+      ],
+      {
+        '星巴克': { '价格': 35, '氛围': '舒适', '距离': 12 },
+        '瑞幸': { '价格': 15, '氛围': '一般', '距离': 3 },
+        'Manner': { '价格': 20, '氛围': '很棒', '距离': 8 },
       }
     ),
   ]

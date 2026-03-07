@@ -168,6 +168,16 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     return added
   }
 
+  function addSingleSample(name: string): Comparison | null {
+    const existingNames = new Set(comparisons.value.map((c) => c.name))
+    if (existingNames.has(name)) return null
+    const sample = getSampleComparisons().find((s) => s.name === name)
+    if (!sample) return null
+    comparisons.value.push(sample)
+    save()
+    return sample
+  }
+
   function hasAllSamples(): boolean {
     const existingNames = new Set(comparisons.value.map((c) => c.name))
     return SAMPLE_NAMES.every((name) => existingNames.has(name))
@@ -285,6 +295,7 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     addValue,
     setOrUpdateValue,
     addSampleData,
+    addSingleSample,
     hasAllSamples,
     duplicateComparison,
     importComparisonFromJSON,

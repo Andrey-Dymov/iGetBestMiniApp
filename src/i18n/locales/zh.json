@@ -18,7 +18,7 @@
   },
   "welcome": {
     "title": "iGetBest",
-    "subtitle": "按标准比较选项并做出明智决策",
+    "subtitle": "选择最好的",
     "start": "开始"
   },
   "common": {
@@ -37,6 +37,7 @@
     "variants": "选项",
     "parameters": "参数",
     "addSamples": "添加示例",
+    "addAllSamples": "添加全部",
     "samplesAdded": "已添加 {count} 个比较",
     "samplesAlreadyExist": "所有示例数据已添加"
   },
@@ -44,8 +45,8 @@
     "empty": "比较尚未填写",
     "emptyHint": "要显示数据，请至少添加一个选项和一个参数",
     "emptyGeneral": "按标准比较选项并做出明智选择。适用于商品、服务、度假地、汽车、房地产等",
-    "emptyVariants": "选项是您要比较的对象。例如：选手机 — iPhone 15、Samsung Galaxy S24、Xiaomi 14。选度假地 — 马尔代夫、土耳其、希腊。请添加 2–5 个选项。",
-    "emptyParams": "参数是比较的标准。例如：价格、质量、设计、功能性、可靠性。每个参数设置 0 到 10 的权重。",
+    "emptyVariants": "选项是您要比较的对象。例如：选手机 — iPhone 15、Samsung Galaxy S24、Xiaomi 14。选度假地 — 马尔代夫、土耳其、希腊。选穿搭 — 连衣裙、连体裤、大衣。选约会地点 — 三家咖啡馆。请添加 2–5 个选项。",
+    "emptyParams": "参数是您用来比较的维度。例如：价格、质量、设计、功能性、可靠性。每个参数设置 1 到 10 的重要性。",
     "addVariantBtn": "添加选项",
     "addParamBtn": "添加参数",
     "notFound": "未找到比较",
@@ -58,7 +59,7 @@
     "editParam": "编辑参数",
     "variantNamePlaceholder": "选项名称",
     "paramNamePlaceholder": "参数名称",
-    "weight": "权重 (0–10)",
+    "weight": "重要性 (1–10)",
     "paramTypeNumber": "数值",
     "paramTypeText": "文本"
   }

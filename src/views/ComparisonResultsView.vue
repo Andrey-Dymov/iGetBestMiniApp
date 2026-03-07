@@ -231,7 +231,7 @@ function saveParam() {
             <NInput v-model:value="newParamName" :placeholder="t('results.paramNamePlaceholder')" @keyup.enter="saveParam" />
           </NFormItem>
           <NFormItem :label="t('results.weight')">
-            <NInputNumber v-model:value="newParamWeight" :min="0" :max="10" />
+            <NInputNumber v-model:value="newParamWeight" :min="1" :max="10" />
           </NFormItem>
           <NSpace justify="end">
             <NButton @click="showParamModal = false">{{ t('common.cancel') }}</NButton>
