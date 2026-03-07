@@ -1,4 +1,19 @@
 {
+  "list": {
+    "duplicate": "Duplicate",
+    "exportJson": "Export to clipboard (JSON)",
+    "exportCompact": "Export to clipboard (compact)",
+    "share": "Share",
+    "delete": "Delete",
+    "importJson": "Import from clipboard (JSON)",
+    "importCompact": "Import compact format",
+    "importSuccess": "Comparison «{name}» imported",
+    "importError": "Import error: {msg}",
+    "exportSuccess": "Comparison «{name}» exported to clipboard",
+    "clipboardEmpty": "Clipboard is empty",
+    "compactPlaceholder": "Paste text in compact format...",
+    "compactExample": "Example:\nComparison: Motorcycle choice\nParameters: Price (1200000:7-1600000:4), weight 8\nKawasaki: 1600000, Comfortable."
+  },
   "welcome": {
     "title": "iGetBest",
     "subtitle": "Compare options by criteria and make informed decisions",

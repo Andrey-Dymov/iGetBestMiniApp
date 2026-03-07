@@ -3,6 +3,14 @@ import { ref, computed } from 'vue'
 import type { Comparison, Variant, Parameter, Value } from '../types'
 import { loadData, saveData } from '../composables/useStorage'
 import { getSampleComparisons, SAMPLE_NAMES } from '../data/samples'
+import {
+  recalculateTotalScores,
+  exportToJSON,
+  exportToCompact,
+  parseCompactFormat,
+  parsedToComparison,
+  importFromJSON,
+} from '../utils/importExport'
 
 function generateId(): string {
   return crypto.randomUUID()
@@ -147,6 +155,102 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     return SAMPLE_NAMES.every((name) => existingNames.has(name))
   }
 
+  function generateUniqueName(baseName: string): string {
+    const existing = new Set(comparisons.value.map((c) => c.name))
+    if (!existing.has(baseName)) return baseName
+    let i = 1
+    while (existing.has(`${baseName} ${i}`)) i++
+    return `${baseName} ${i}`
+  }
+
+  function duplicateComparison(id: string): Comparison | null {
+    const orig = getComparison(id)
+    if (!orig) return null
+    const newName = generateUniqueName(orig.name)
+    const c: Comparison = {
+      id: generateId(),
+      name: newName,
+      description: orig.description,
+      modifiedDate: new Date().toISOString(),
+      variants: [],
+      parameters: [],
+      values: [],
+    }
+    const vIdMap = new Map<string, string>()
+    const pIdMap = new Map<string, string>()
+    for (const op of orig.parameters) {
+      const np: Parameter = {
+        id: generateId(),
+        name: op.name,
+        description: op.description,
+        number: op.number,
+        weight: op.weight,
+        unit: op.unit,
+        parameterType: op.parameterType,
+        criteria: (op.criteria ?? []).map((oc) => ({
+          id: generateId(),
+          name: oc.name,
+          textValue: oc.textValue,
+          numericValue: oc.numericValue,
+          score: oc.score,
+        })),
+      }
+      c.parameters.push(np)
+      pIdMap.set(op.id, np.id)
+    }
+    for (const ov of orig.variants) {
+      const nv: Variant = {
+        id: generateId(),
+        name: ov.name,
+        description: ov.description,
+        number: ov.number,
+        totalScore: ov.totalScore,
+        position: ov.position,
+        url: ov.url,
+        imageUrls: ov.imageUrls ? [...ov.imageUrls] : undefined,
+      }
+      c.variants.push(nv)
+      vIdMap.set(ov.id, nv.id)
+    }
+    for (const ov of orig.values) {
+      const nvId = vIdMap.get(ov.variantId)
+      const npId = pIdMap.get(ov.parameterId)
+      if (nvId && npId) {
+        c.values.push({
+          id: generateId(),
+          variantId: nvId,
+          parameterId: npId,
+          textValue: ov.textValue,
+          numericValue: ov.numericValue,
+          score: ov.score,
+        })
+      }
+    }
+    recalculateTotalScores(c)
+    comparisons.value.push(c)
+    save()
+    return c
+  }
+
+  function importComparisonFromJSON(jsonStr: string): Comparison | null {
+    const c = importFromJSON(jsonStr)
+    if (!c) return null
+    c.name = generateUniqueName(c.name)
+    comparisons.value.push(c)
+    save()
+    return c
+  }
+
+  function importComparisonFromCompact(text: string): Comparison | null {
+    const parsed = parseCompactFormat(text)
+    if (!parsed.ok) return null
+    const c = parsedToComparison(parsed.data)
+    c.name = generateUniqueName(c.name)
+    comparisons.value.push(c)
+    save()
+    return c
+  }
+
   return {
     comparisons,
     sortedComparisons,
@@ -162,5 +266,10 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     setOrUpdateValue,
     addSampleData,
     hasAllSamples,
+    duplicateComparison,
+    importComparisonFromJSON,
+    importComparisonFromCompact,
+    exportToJSON,
+    exportToCompact,
   }
 })

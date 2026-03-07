@@ -1,11 +1,33 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, h, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useComparisonsStore } from '../stores/comparisons'
-import { NButton, NList, NListItem, NThing, NEmpty, NModal, NInput, NForm, NFormItem, NSpace, NIcon } from 'naive-ui'
-import { TrashOutline } from '@vicons/ionicons5'
+import {
+  NButton,
+  NList,
+  NListItem,
+  NThing,
+  NEmpty,
+  NModal,
+  NInput,
+  NForm,
+  NFormItem,
+  NSpace,
+  NIcon,
+  NDropdown,
+} from 'naive-ui'
+import type { DropdownOption } from 'naive-ui'
+import {
+  EllipsisHorizontalOutline,
+  DocumentTextOutline,
+  DocumentOutline,
+  CopyOutline,
+  ShareSocialOutline,
+  TrashOutline,
+} from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
 import { useMessage } from 'naive-ui'
+import type { Comparison } from '../types'
 
 const router = useRouter()
 const store = useComparisonsStore()
@@ -14,7 +36,9 @@ const message = useMessage()
 
 const dateLocale = computed(() => (locale.value === 'ru' ? 'ru-RU' : 'en-GB'))
 const showAddModal = ref(false)
+const showImportCompactModal = ref(false)
 const newName = ref('')
+const importCompactText = ref('')
 
 onMounted(async () => {
   await store.load()
@@ -45,8 +69,8 @@ function openComparison(id: string) {
   router.push(`/comparisons/${id}`)
 }
 
-function deleteComparison(id: string, e: Event) {
-  e.stopPropagation()
+function deleteComparison(id: string, e?: Event) {
+  e?.stopPropagation()
   if (confirm(t('comparisons.deleteConfirm'))) {
     store.deleteComparison(id)
   }
@@ -65,12 +89,102 @@ function formatDate(iso: string) {
   return d.toLocaleDateString(dateLocale.value, { day: 'numeric', month: 'short', year: '2-digit' })
 }
 
-function sortedVariants(c: { variants: { id: string; name: string; totalScore: number }[] }) {
+function sortedVariants(c: { variants: { id: string; name: string; totalScore: number; imageUrls?: string[] }[] }) {
   return [...c.variants].sort((a, b) => b.totalScore - a.totalScore)
 }
 
 function parameterNames(c: { parameters: { name: string }[] }) {
-  return c.parameters.map((p) => p.name).join(', ')
+  return c.parameters.map((p) => p.name).join(' · ')
+}
+
+function hasAnyImages(c: Comparison): boolean {
+  return c.variants.some((v) => v.imageUrls?.length)
+}
+
+function renderIcon(icon: unknown) {
+  return () => h(NIcon, null, { default: () => h(icon as never) })
+}
+
+function getMenuOptions(): DropdownOption[] {
+  return [
+    { label: t('list.duplicate'), key: 'duplicate', icon: renderIcon(CopyOutline) },
+    { label: t('list.exportJson'), key: 'exportJson', icon: renderIcon(DocumentTextOutline) },
+    { label: t('list.exportCompact'), key: 'exportCompact', icon: renderIcon(DocumentOutline) },
+    { label: t('list.share'), key: 'share', icon: renderIcon(ShareSocialOutline) },
+    { type: 'divider' },
+    { label: t('list.delete'), key: 'delete', icon: renderIcon(TrashOutline) },
+  ]
+}
+
+function handleMenuSelect(key: string, c: Comparison) {
+  if (key === 'duplicate') {
+    const created = store.duplicateComparison(c.id)
+    if (created) {
+      message.success(t('list.importSuccess', { name: created.name }))
+      router.push(`/comparisons/${created.id}`)
+    }
+  } else if (key === 'exportJson') {
+    const json = store.exportToJSON(c)
+    navigator.clipboard.writeText(json).then(() => {
+      message.success(t('list.exportSuccess', { name: c.name }))
+    })
+  } else if (key === 'exportCompact') {
+    const text = store.exportToCompact(c)
+    navigator.clipboard.writeText(text).then(() => {
+      message.success(t('list.exportSuccess', { name: c.name }))
+    })
+  } else if (key === 'share') {
+    const json = store.exportToJSON(c)
+    if (navigator.share) {
+      navigator.share({
+        title: c.name,
+        text: `Сравнение: ${c.name}`,
+      }).catch(() => copyAndNotify(json, c))
+    } else {
+      copyAndNotify(json, c)
+    }
+  } else if (key === 'delete') {
+    deleteComparison(c.id)
+  }
+}
+
+function copyAndNotify(json: string, c: Comparison) {
+  navigator.clipboard.writeText(json).then(() => {
+    message.success(t('list.exportSuccess', { name: c.name }))
+  })
+}
+
+async function importFromClipboardJson() {
+  try {
+    const text = await navigator.clipboard.readText()
+    if (!text?.trim()) {
+      message.error(t('list.clipboardEmpty'))
+      return
+    }
+    const c = store.importComparisonFromJSON(text)
+    if (c) {
+      message.success(t('list.importSuccess', { name: c.name }))
+      router.push(`/comparisons/${c.id}`)
+    } else {
+      message.error(t('list.importError', { msg: 'Неверный JSON' }))
+    }
+  } catch {
+    message.error(t('list.importError', { msg: 'Нет доступа к буферу' }))
+  }
+}
+
+function importFromCompact() {
+  const text = importCompactText.value.trim()
+  if (!text) return
+  const c = store.importComparisonFromCompact(text)
+  if (c) {
+    message.success(t('list.importSuccess', { name: c.name }))
+    showImportCompactModal.value = false
+    importCompactText.value = ''
+    router.push(`/comparisons/${c.id}`)
+  } else {
+    message.error(t('list.importError', { msg: 'Формат не распознан' }))
+  }
 }
 
 function addSamples() {
@@ -88,6 +202,16 @@ function addSamples() {
     <div class="header">
       <NButton quaternary @click="goBack" class="back-btn">← {{ t('common.back') }}</NButton>
       <NSpace>
+        <NButton quaternary circle size="small" @click="importFromClipboardJson" :title="t('list.importJson')">
+          <template #icon>
+            <NIcon><DocumentTextOutline /></NIcon>
+          </template>
+        </NButton>
+        <NButton quaternary circle size="small" @click="showImportCompactModal = true" :title="t('list.importCompact')">
+          <template #icon>
+            <NIcon><DocumentOutline /></NIcon>
+          </template>
+        </NButton>
         <NButton secondary @click="addSamples" :disabled="store.hasAllSamples()">
           {{ t('comparisons.addSamples') }}
         </NButton>
@@ -110,18 +234,17 @@ function addSamples() {
           <template #header-extra>
             <div class="header-extra">
               <span class="date">{{ formatDate(c.modifiedDate) }}</span>
-              <NButton
-                quaternary
-                circle
-                size="small"
-                type="error"
-                class="delete-btn"
-                @click="deleteComparison(c.id, $event)"
+              <NDropdown
+                :options="getMenuOptions()"
+                trigger="click"
+                @select="(key: string) => handleMenuSelect(key, c)"
               >
-                <template #icon>
-                  <NIcon><TrashOutline /></NIcon>
-                </template>
-              </NButton>
+                <NButton quaternary circle size="small" class="menu-btn" @click.stop>
+                  <template #icon>
+                    <NIcon><EllipsisHorizontalOutline /></NIcon>
+                  </template>
+                </NButton>
+              </NDropdown>
             </div>
           </template>
           <template #description>
@@ -132,6 +255,17 @@ function addSamples() {
                   <span class="variant-rank">{{ i + 1 }}</span>
                   {{ v.name }}<span class="variant-score">{{ '\u00A0' }}–{{ '\u00A0' }}{{ Math.round(v.totalScore) }}</span>
                 </span>
+              </div>
+              <div v-if="hasAnyImages(c)" class="meta-line variant-images-row">
+                <template v-for="v in sortedVariants(c)" :key="v.id">
+                  <img
+                    v-if="v.imageUrls?.length"
+                    :src="v.imageUrls?.[0]"
+                    :alt="v.name"
+                    class="variant-thumb"
+                    @error="($event.target as HTMLImageElement)?.style?.setProperty('display', 'none')"
+                  />
+                </template>
               </div>
               <div v-if="c.parameters.length" class="meta-line">
                 {{ parameterNames(c) }}
@@ -154,6 +288,30 @@ function addSamples() {
           <NSpace justify="end">
             <NButton @click="closeAdd">{{ t('common.cancel') }}</NButton>
             <NButton type="primary" :disabled="!newName.trim()" @click="createAndOpen">
+              {{ t('comparisons.create') }}
+            </NButton>
+          </NSpace>
+        </NForm>
+      </div>
+    </NModal>
+
+    <NModal :show="showImportCompactModal" @update:show="showImportCompactModal = $event">
+      <div class="modal-content modal-import">
+        <h3>{{ t('list.importCompact') }}</h3>
+        <NForm>
+          <NFormItem>
+            <NInput
+              v-model:value="importCompactText"
+              type="textarea"
+              :placeholder="t('list.compactPlaceholder')"
+              :rows="8"
+              class="import-textarea"
+            />
+          </NFormItem>
+          <p class="compact-hint">{{ t('list.compactExample') }}</p>
+          <NSpace justify="end">
+            <NButton @click="showImportCompactModal = false">{{ t('common.cancel') }}</NButton>
+            <NButton type="primary" :disabled="!importCompactText.trim()" @click="importFromCompact">
               {{ t('comparisons.create') }}
             </NButton>
           </NSpace>
@@ -267,6 +425,41 @@ function addSamples() {
 }
 
 .modal-content h3 {
+  margin: 0 0 16px 0;
+}
+
+.menu-btn {
+  flex-shrink: 0;
+}
+
+.variant-images-row {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  overflow-x: auto;
+}
+
+.variant-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.modal-import {
+  max-width: 480px;
+}
+
+.import-textarea {
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.compact-hint {
+  font-size: 0.85em;
+  color: var(--tg-theme-hint-color, #999);
+  white-space: pre-line;
   margin: 0 0 16px 0;
 }
 </style>
