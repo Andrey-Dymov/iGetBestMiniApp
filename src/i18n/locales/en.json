@@ -41,7 +41,13 @@
     "samplesAlreadyExist": "All sample data already added"
   },
   "results": {
-    "empty": "Add variants and parameters",
+    "empty": "Comparison is empty",
+    "emptyHint": "To display data, add at least one variant and one parameter",
+    "emptyGeneral": "Compare options by criteria and choose the best. Works for products, services, vacation spots, cars, real estate, and more",
+    "emptyVariants": "Variants are what you compare. For example: iPhone 15, Samsung Galaxy S24, Xiaomi 14 for a smartphone. Or Maldives, Turkey, Greece for a vacation. Add 2–5 variants.",
+    "emptyParams": "Parameters are the criteria you compare by. For example: price, quality, design, functionality, reliability. Set each a weight from 0 to 10.",
+    "addVariantBtn": "Add Variant",
+    "addParamBtn": "Add Parameter",
     "notFound": "Comparison not found",
     "hint": "Use the buttons below to add",
     "variants": "Variants",

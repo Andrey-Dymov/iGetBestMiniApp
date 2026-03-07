@@ -95,17 +95,26 @@ function addParam() {
     </header>
 
     <template v-if="comparison">
-      <NEmpty v-if="!hasTableData()" :description="t('results.empty')" class="empty">
-        <template #extra>
-          <NSpace vertical align="center">
-            <p class="hint">{{ t('results.hint') }}</p>
-            <NSpace>
-              <NButton size="small" @click="openAddVariant">{{ t('results.addVariant') }}</NButton>
-              <NButton size="small" @click="openAddParam">{{ t('results.addParam') }}</NButton>
-            </NSpace>
-          </NSpace>
-        </template>
-      </NEmpty>
+      <div v-if="!hasTableData()" class="empty-state">
+        <div class="empty-icon">📊</div>
+        <h2 class="empty-title">{{ t('results.empty') }}</h2>
+        <p class="empty-hint">{{ t('results.emptyHint') }}</p>
+        <p class="empty-general">{{ t('results.emptyGeneral') }}</p>
+        <div class="empty-actions">
+          <div v-if="!comparison.variants.length" class="empty-section">
+            <NButton type="primary" block size="large" @click="openAddVariant" class="empty-btn">
+              {{ t('results.addVariantBtn') }}
+            </NButton>
+            <p class="empty-desc">{{ t('results.emptyVariants') }}</p>
+          </div>
+          <div v-if="!comparison.parameters.length" class="empty-section">
+            <NButton type="success" block size="large" @click="openAddParam" class="empty-btn">
+              {{ t('results.addParamBtn') }}
+            </NButton>
+            <p class="empty-desc">{{ t('results.emptyParams') }}</p>
+          </div>
+        </div>
+      </div>
 
       <div v-else class="table-wrap">
         <div class="table-scroll">
@@ -295,12 +304,70 @@ function addParam() {
   margin: 0 0 16px 0;
 }
 
-.empty {
-  margin-top: 48px;
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 24px;
+  text-align: center;
 }
 
-.hint {
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.empty-title {
+  margin: 0 0 8px 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.empty-hint {
+  margin: 0 0 12px 0;
   color: var(--tg-theme-hint-color, #999);
-  font-size: 0.9em;
+  font-size: 0.95rem;
+  width: 100%;
+}
+
+.empty-general {
+  margin: 0 0 24px 0;
+  color: var(--tg-theme-hint-color, #888);
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+.empty-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.empty-section {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.empty-btn {
+  min-height: 56px;
+  font-size: 1rem;
+}
+
+/* Вариант — синий (primary), Параметр — зелёный (success) */
+
+.empty-desc {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--tg-theme-hint-color, #999);
+  width: 100%;
+}
+
+/* NEmpty для «сравнение не найдено» */
+.empty {
+  margin-top: 48px;
 }
 </style>

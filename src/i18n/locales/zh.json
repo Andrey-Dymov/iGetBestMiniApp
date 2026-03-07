@@ -41,7 +41,13 @@
     "samplesAlreadyExist": "所有示例数据已添加"
   },
   "results": {
-    "empty": "添加选项和参数",
+    "empty": "比较为空",
+    "emptyHint": "要显示数据，请至少添加一个选项和一个参数",
+    "emptyGeneral": "按标准比较选项并做出明智选择。适用于商品、服务、度假地、汽车、房地产等",
+    "emptyVariants": "选项是您要比较的对象。例如：选手机 — iPhone 15、Samsung Galaxy S24、Xiaomi 14。选度假地 — 马尔代夫、土耳其、希腊。请添加 2–5 个选项。",
+    "emptyParams": "参数是比较的标准。例如：价格、质量、设计、功能性、可靠性。每个参数设置 0 到 10 的权重。",
+    "addVariantBtn": "添加选项",
+    "addParamBtn": "添加参数",
     "notFound": "未找到比较",
     "hint": "使用下方按钮添加",
     "variants": "选项",
