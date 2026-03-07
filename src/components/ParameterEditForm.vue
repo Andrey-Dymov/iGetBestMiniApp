@@ -106,9 +106,8 @@ function updateCriterion(cr: Criterion, updates: Partial<Criterion>) {
     if (paramType.value === 'number') {
       const num = Number(val)
       cr.numericValue = Number.isFinite(num) ? num : undefined
-    } else {
-      cr.numericValue = undefined
     }
+    // В текстовом режиме numericValue не трогаем — сохраняем для переключения обратно
   }
 }
 
@@ -118,13 +117,11 @@ function onCriterionInput(cr: Criterion, val: string) {
 
 function onCriterionNumberInput(cr: Criterion, val: number | null) {
   if (val == null || !Number.isFinite(val)) {
-    updateCriterion(cr, { name: '', textValue: '' })
     cr.numericValue = undefined
   } else {
-    const str = Number.isInteger(val) ? String(val) : String(val)
-    updateCriterion(cr, { name: str, textValue: str })
     cr.numericValue = val
   }
+  // textValue и name не трогаем — сохраняем текстовую подпись («Низкий») для переключения обратно
 }
 
 function sortCriteriaByType() {
@@ -137,12 +134,23 @@ function sortCriteriaByType() {
   criteria.value = arr
 }
 
+/** Правила переключения типа: число↔текст сохраняют оба значения, при переключении берём подходящее */
 function onParamTypeChange() {
   for (const cr of criteria.value) {
     if (paramType.value === 'text') {
-      cr.numericValue = undefined
-    } else if (cr.textValue !== '' && Number.isFinite(Number(cr.textValue))) {
-      cr.numericValue = Number(cr.textValue)
+      // Переход на текстовой: если textValue пусто — берём число и переводим в строку
+      if (!cr.textValue || cr.textValue.trim() === '') {
+        cr.textValue = cr.numericValue != null ? String(cr.numericValue) : ''
+        cr.name = cr.textValue
+      }
+      // numericValue не стираем — пригодятся при обратном переключении
+    } else {
+      // Переход на числовой: если textValue можно перевести в число — переводим
+      const num = Number(cr.textValue)
+      if (cr.textValue !== '' && Number.isFinite(num)) {
+        cr.numericValue = num
+      }
+      // Иначе оставляем существующий numericValue
     }
   }
   sortCriteriaByType()
@@ -243,13 +251,11 @@ function save() {
   const normalizedCriteria = criteria.value.map((cr) => {
     const c = { ...cr }
     if (type === 'number') {
-      if (c.numericValue != null) {
-        c.name = String(c.numericValue)
-        c.textValue = String(c.numericValue)
-      } else if (c.name || c.textValue) {
+      if (c.numericValue == null && (c.name || c.textValue)) {
         const num = Number(c.name || c.textValue)
         c.numericValue = Number.isFinite(num) ? num : undefined
       }
+      // name и textValue не перезаписываем — сохраняем текстовую подпись («Низкий»)
     } else {
       c.numericValue = undefined
     }
