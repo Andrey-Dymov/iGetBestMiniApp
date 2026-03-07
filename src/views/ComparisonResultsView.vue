@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch, TransitionGroup } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useComparisonsStore } from '../stores/comparisons'
-import { NButton, NEmpty, NSpace, NModal, NInput, NForm, NFormItem, NInputNumber } from 'naive-ui'
+import { NButton, NEmpty, NSpace, NModal, NInput, NForm, NFormItem, NIcon } from 'naive-ui'
+import { AddOutline } from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
-import { recalculateTotalScores } from '../utils/importExport'
-import type { Comparison, Variant, Parameter, Value } from '../types'
+import { recalculateTotalScores, findScoreFromCriteria } from '../utils/importExport'
+import ParameterEditForm from '../components/ParameterEditForm.vue'
+import type { Variant, Parameter, Value } from '../types'
+import type { ParameterFormData } from '../components/ParameterEditForm.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,9 +21,6 @@ const showParamModal = ref(false)
 const editingVariant = ref<Variant | null>(null)
 const editingParam = ref<Parameter | null>(null)
 const newVariantName = ref('')
-const newParamName = ref('')
-const newParamWeight = ref(5)
-
 const sortedVariants = computed(() => {
   const c = comparison.value
   if (!c) return []
@@ -32,6 +32,30 @@ const sortedParameters = computed(() => {
   if (!c) return []
   return [...c.parameters].sort((a, b) => b.weight - a.weight)
 })
+
+const displayedParameters = ref<Parameter[]>([])
+let reorderTimeout: ReturnType<typeof setTimeout> | null = null
+const reorderScheduled = ref(false)
+
+watch(
+  [comparison, sortedParameters],
+  ([c, sorted]) => {
+    const list = (sorted as Parameter[]) ?? []
+    if (!c || list.length === 0) {
+      displayedParameters.value = []
+      reorderScheduled.value = false
+      return
+    }
+    if (reorderScheduled.value) return
+    const idsMatch =
+      displayedParameters.value.length === list.length &&
+      displayedParameters.value.every((p, i) => p.id === list[i]?.id)
+    if (!idsMatch) {
+      displayedParameters.value = [...list]
+    }
+  },
+  { immediate: true }
+)
 
 function getValue(variantId: string, parameterId: string): Value | undefined {
   const c = comparison.value
@@ -83,31 +107,91 @@ function saveVariant() {
   editingVariant.value = null
 }
 
+function onVariantModalShow(visible: boolean) {
+  showVariantModal.value = visible
+  if (!visible) editingVariant.value = null
+}
+
+function onParamModalShow(visible: boolean) {
+  showParamModal.value = visible
+  if (!visible) editingParam.value = null
+}
+
 function openAddParam() {
   editingParam.value = null
-  newParamName.value = ''
-  newParamWeight.value = 5
   showParamModal.value = true
 }
 
 function openEditParam(p: Parameter) {
   editingParam.value = p
-  newParamName.value = p.name
-  newParamWeight.value = p.weight
   showParamModal.value = true
 }
 
-function saveParam() {
+function setParamWeight(p: Parameter, weight: number) {
   const c = comparison.value
-  if (!c || !newParamName.value.trim()) return
+  if (!c) return
+  reorderScheduled.value = true
+  store.updateParameter(c.id, p.id, { weight })
+  recalculateTotalScores(c)
+  if (reorderTimeout) clearTimeout(reorderTimeout)
+  reorderTimeout = setTimeout(() => {
+    displayedParameters.value = [...sortedParameters.value]
+    reorderScheduled.value = false
+    reorderTimeout = null
+  }, 1000)
+}
+
+function formatCompactNumber(num: number): string {
+  const absNum = Math.abs(num)
+  const sign = num < 0 ? '-' : ''
+  if (absNum < 1000) return `${sign}${absNum % 1 === 0 ? Math.round(absNum) : absNum.toFixed(1)}`
+  if (absNum < 1_000_000) {
+    const k = absNum / 1000
+    return `${sign}${k % 1 === 0 ? Math.round(k) : k.toFixed(1)}K`
+  }
+  if (absNum < 1_000_000_000) {
+    const m = absNum / 1_000_000
+    return `${sign}${m % 1 === 0 ? Math.round(m) : m.toFixed(1)}M`
+  }
+  const b = absNum / 1_000_000_000
+  return `${sign}${b % 1 === 0 ? Math.round(b) : b.toFixed(1)}B`
+}
+
+function formatCellValue(val: Value | undefined): string {
+  if (!val) return '—'
+  if (val.numericValue != null) return formatCompactNumber(val.numericValue)
+  return val.textValue ?? '—'
+}
+
+function onParamFormSave(data: ParameterFormData) {
+  const c = comparison.value
+  if (!c || !data.name.trim()) return
   if (editingParam.value) {
     store.updateParameter(c.id, editingParam.value.id, {
-      name: newParamName.value.trim(),
-      weight: newParamWeight.value,
+      name: data.name.trim(),
+      weight: data.weight,
+      unit: data.unit || undefined,
+      parameterType: data.parameterType,
+      criteria: data.criteria,
     })
+    for (const v of c.variants) {
+      const val = data.variantValues[v.id]
+      if (val !== undefined && val !== '') {
+        const score = findScoreFromCriteria(data.criteria, val, data.parameterType)
+        store.setOrUpdateValue(c.id, v.id, editingParam.value!.id, typeof val === 'string' ? val : undefined, typeof val === 'number' ? val : undefined, score)
+      }
+    }
   } else {
-    store.addParameter(c.id, newParamName.value.trim(), newParamWeight.value)
+    const p = store.addParameter(c.id, data.name.trim(), data.weight, data.parameterType, data.unit || undefined, data.criteria)
+    for (const v of c.variants) {
+      const val = data.variantValues[v.id]
+      if (val !== undefined && val !== '') {
+        const score = findScoreFromCriteria(data.criteria, val, data.parameterType)
+        store.setOrUpdateValue(c.id, v.id, p.id, typeof val === 'string' ? val : undefined, typeof val === 'number' ? val : undefined, score)
+      }
+    }
   }
+  recalculateTotalScores(c!)
   showParamModal.value = false
   editingParam.value = null
 }
@@ -118,10 +202,6 @@ function saveParam() {
     <header class="results-header">
       <NButton quaternary size="small" @click="goBack">← {{ t('common.back') }}</NButton>
       <h1 class="results-title">{{ comparison?.name ?? '' }}</h1>
-      <NSpace>
-        <NButton size="small" @click="openAddVariant">{{ t('results.addVariant') }}</NButton>
-        <NButton size="small" @click="openAddParam">{{ t('results.addParam') }}</NButton>
-      </NSpace>
     </header>
 
     <template v-if="comparison">
@@ -177,7 +257,22 @@ function saveParam() {
           <table class="results-table">
             <thead>
               <tr>
-                <th class="param-col"></th>
+                <th class="param-col">
+                  <div v-if="hasTableData()" class="table-actions">
+                    <NButton size="small" @click="openAddParam">
+                      <template #icon>
+                        <NIcon><AddOutline /></NIcon>
+                      </template>
+                      {{ t('results.addParam') }}
+                    </NButton>
+                    <NButton size="small" @click="openAddVariant">
+                      <template #icon>
+                        <NIcon><AddOutline /></NIcon>
+                      </template>
+                      {{ t('results.addVariant') }}
+                    </NButton>
+                  </div>
+                </th>
                 <th v-for="v in sortedVariants" :key="v.id" class="variant-col">
                   <div class="variant-header">
                     <span class="variant-name">{{ v.name }}</span>
@@ -186,21 +281,42 @@ function saveParam() {
                 </th>
               </tr>
             </thead>
-            <tbody>
-              <tr v-for="p in sortedParameters" :key="p.id">
-                <td class="param-col">
+            <TransitionGroup name="param-move" tag="tbody" class="param-tbody">
+              <tr v-for="p in displayedParameters" :key="p.id" class="param-row">
+                <td class="param-col" @click="openEditParam(p)">
                   <div class="param-header">
-                    <span class="param-name">{{ p.name }}</span>
-                    <span class="param-weight">{{ p.weight }}</span>
+                    <span class="param-name param-name-upper">{{ p.name }}{{ p.unit ? `, ${p.unit}` : '' }}</span>
+                    <div class="param-weight-scale" @click.stop>
+                      <button
+                        v-for="i in 11"
+                        :key="i - 1"
+                        type="button"
+                        class="weight-dot"
+                        :class="{
+                          filled: (i - 1) <= p.weight,
+                          zero: i === 1,
+                        }"
+                        :title="String(i - 1)"
+                        @click="setParamWeight(p, i - 1)"
+                      />
+                      <span class="param-weight-badge">{{ p.weight }}</span>
+                    </div>
                   </div>
                 </td>
-                <td v-for="v in sortedVariants" :key="v.id" class="cell">
+                <td v-for="v in sortedVariants" :key="v.id" class="cell" @click="openEditParam(p)">
                   <div class="cell-value">
-                    {{ getValue(v.id, p.id)?.textValue ?? getValue(v.id, p.id)?.numericValue ?? '—' }}
+                    <span>{{ formatCellValue(getValue(v.id, p.id)) }}</span>
+                    <span
+                      v-if="getValue(v.id, p.id)?.score != null"
+                      class="cell-score-badge"
+                      :class="'score-' + Math.min(10, Math.floor(getValue(v.id, p.id)!.score))"
+                    >
+                      {{ Math.round(getValue(v.id, p.id)!.score) }}/{{ Math.round(getValue(v.id, p.id)!.score * p.weight) }}
+                    </span>
                   </div>
                 </td>
               </tr>
-            </tbody>
+            </TransitionGroup>
           </table>
         </div>
       </div>
@@ -208,7 +324,7 @@ function saveParam() {
 
     <NEmpty v-else :description="t('results.notFound')" class="empty" />
 
-    <NModal :show="showVariantModal" @update:show="(v) => { showVariantModal = v; if (!v) editingVariant.value = null }">
+    <NModal :show="showVariantModal" @update:show="onVariantModalShow">
       <div class="modal-content">
         <h3>{{ editingVariant ? t('results.editVariant') : t('results.addVariant') }}</h3>
         <NForm>
@@ -223,21 +339,18 @@ function saveParam() {
       </div>
     </NModal>
 
-    <NModal :show="showParamModal" @update:show="(v) => { showParamModal = v; if (!v) editingParam.value = null }">
-      <div class="modal-content">
+    <NModal :show="showParamModal" @update:show="onParamModalShow">
+      <div class="modal-content modal-content-scroll">
         <h3>{{ editingParam ? t('results.editParam') : t('results.addParam') }}</h3>
-        <NForm>
-          <NFormItem :label="t('comparisons.name')">
-            <NInput v-model:value="newParamName" :placeholder="t('results.paramNamePlaceholder')" @keyup.enter="saveParam" />
-          </NFormItem>
-          <NFormItem :label="t('results.weight')">
-            <NInputNumber v-model:value="newParamWeight" :min="1" :max="10" />
-          </NFormItem>
-          <NSpace justify="end">
-            <NButton @click="showParamModal = false">{{ t('common.cancel') }}</NButton>
-            <NButton type="primary" :disabled="!newParamName.trim()" @click="saveParam">{{ t('comparisons.create') }}</NButton>
-          </NSpace>
-        </NForm>
+        <ParameterEditForm
+          v-if="comparison"
+          :parameter="editingParam"
+          :variants="comparison.variants"
+          :get-value="getValue"
+          :is-new="!editingParam"
+          @save="onParamFormSave"
+          @cancel="showParamModal = false"
+        />
       </div>
     </NModal>
   </div>
@@ -296,12 +409,31 @@ function saveParam() {
   vertical-align: middle;
 }
 
+.param-tbody {
+  display: table-row-group;
+}
+
+.param-row {
+  cursor: pointer;
+}
+
+.param-move-move {
+  transition: transform 0.5s ease;
+}
+
 .param-col {
   position: sticky;
   left: 0;
   background: var(--tg-theme-bg-color, #fff);
-  min-width: 100px;
-  max-width: 140px;
+  min-width: 120px;
+  max-width: 160px;
+}
+
+.table-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
 }
 
 .variant-col {
@@ -327,9 +459,8 @@ function saveParam() {
 
 .param-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   font-weight: 600;
   line-height: 1.2;
 }
@@ -340,27 +471,104 @@ function saveParam() {
   text-overflow: ellipsis;
 }
 
-.param-weight {
-  flex-shrink: 0;
-  font-weight: 500;
-  color: var(--tg-theme-hint-color, #999);
+.param-name-upper {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: var(--tg-theme-hint-color, #666);
+}
+
+.param-weight-scale {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.weight-dot {
+  width: 8px;
+  height: 8px;
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+  background: rgba(128, 128, 128, 0.3);
+  transition: background 0.15s;
+}
+
+.weight-dot.filled {
+  background: var(--tg-theme-button-color, #18a058);
+}
+
+.weight-dot.zero {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--tg-theme-text-color, #333);
+}
+
+.weight-dot.zero.filled {
+  background: var(--tg-theme-button-color, #18a058);
+  box-shadow: none;
+}
+
+.param-weight-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--tg-theme-text-color, #333);
+  background: rgba(128, 128, 128, 0.2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  min-width: 22px;
+  text-align: center;
 }
 
 .cell {
   text-align: center;
 }
 
+.cell {
+  cursor: pointer;
+}
+
 .cell-value {
   min-height: 1.2em;
   line-height: 32px;
   font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
+
+.cell-score-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.cell-score-badge.score-0 { background: #cc0000; }
+.cell-score-badge.score-1 { background: #e64d00; }
+.cell-score-badge.score-2 { background: #ff8000; }
+.cell-score-badge.score-3 { background: #ff9900; }
+.cell-score-badge.score-4 { background: #e6b800; }
+.cell-score-badge.score-5 { background: #ccb300; }
+.cell-score-badge.score-6 { background: #99a600; }
+.cell-score-badge.score-7 { background: #66a600; }
+.cell-score-badge.score-8 { background: #33a600; }
+.cell-score-badge.score-9 { background: #1a8c00; }
+.cell-score-badge.score-10 { background: #006600; }
 
 .modal-content {
   padding: 24px;
   background: var(--tg-theme-bg-color, #fff);
   border-radius: 12px;
   max-width: 400px;
+}
+.modal-content-scroll {
+  max-height: 85vh;
+  overflow-y: auto;
 }
 
 .modal-content h3 {

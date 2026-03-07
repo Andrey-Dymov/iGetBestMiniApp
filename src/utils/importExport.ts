@@ -7,6 +7,34 @@ function id() {
   return crypto.randomUUID()
 }
 
+/** Вычисляет оценку по критериям для значения (число или текст) */
+export function findScoreFromCriteria(criteria: Criterion[], val: string | number, type: 'number' | 'text'): number {
+  if (type === 'text') {
+    const x = criteria.find((c) => String(c.textValue).toLowerCase() === String(val).toLowerCase())
+    return x?.score ?? 0
+  }
+  const num = Number(val)
+  const exact = criteria.find((c) => Number(c.numericValue ?? c.textValue) === num)
+  if (exact) return exact.score
+  const sorted = [...criteria].sort((a, b) => Number(a.numericValue ?? a.textValue) - Number(b.numericValue ?? b.textValue))
+  if (sorted.length === 0) return 0
+  const getVal = (c: Criterion) => Number(c.numericValue ?? c.textValue)
+  if (num <= getVal(sorted[0]!)) return sorted[0]?.score ?? 0
+  if (num >= getVal(sorted[sorted.length - 1]!)) return sorted[sorted.length - 1]?.score ?? 0
+  for (let j = 0; j < sorted.length - 1; j++) {
+    const curr = sorted[j]
+    const next = sorted[j + 1]
+    if (!curr || !next) continue
+    const lo = getVal(curr)
+    const hi = getVal(next)
+    if (num >= lo && num <= hi) {
+      const t = (num - lo) / (hi - lo)
+      return curr.score + t * (next.score - curr.score)
+    }
+  }
+  return sorted[0]?.score ?? 0
+}
+
 export function recalculateTotalScores(c: Comparison) {
   for (const v of c.variants) {
     let total = 0

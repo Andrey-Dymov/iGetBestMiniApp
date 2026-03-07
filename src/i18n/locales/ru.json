@@ -24,7 +24,8 @@
   "common": {
     "back": "Назад",
     "cancel": "Отмена",
-    "delete": "Удалить"
+    "delete": "Удалить",
+    "save": "Сохранить"
   },
   "comparisons": {
     "add": "Добавить",
@@ -62,5 +63,23 @@
     "weight": "Важность (1–10)",
     "paramTypeNumber": "Числовой",
     "paramTypeText": "Текстовой"
+  },
+  "paramForm": {
+    "basicInfo": "Основная информация",
+    "unit": "Единицы измерения",
+    "unitPlaceholder": "₽, кг, м²",
+    "criteria": "Критерии",
+    "addCriterion": "Добавить критерий",
+    "template": "Шаблон",
+    "template10": "10 бальная",
+    "template100": "100 бальная",
+    "templateYesNo": "Нет/Да",
+    "yes": "Да",
+    "no": "Нет",
+    "variants": "Варианты",
+    "score": "Оценка",
+    "sort": "Сортировка",
+    "value": "Значение",
+    "criterionName": "Критерий"
   }
 }

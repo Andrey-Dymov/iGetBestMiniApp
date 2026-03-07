@@ -24,7 +24,8 @@
   "common": {
     "back": "Back",
     "cancel": "Cancel",
-    "delete": "Delete"
+    "delete": "Delete",
+    "save": "Save"
   },
   "comparisons": {
     "add": "Add",
@@ -62,5 +63,23 @@
     "weight": "Importance (1–10)",
     "paramTypeNumber": "Number",
     "paramTypeText": "Text"
+  },
+  "paramForm": {
+    "basicInfo": "Basic info",
+    "unit": "Unit",
+    "unitPlaceholder": "₽, kg, m²",
+    "criteria": "Criteria",
+    "addCriterion": "Add criterion",
+    "template": "Template",
+    "template10": "10-point scale",
+    "template100": "100-point scale",
+    "templateYesNo": "Yes/No",
+    "yes": "Yes",
+    "no": "No",
+    "variants": "Variants",
+    "score": "Score",
+    "sort": "Sort",
+    "value": "Value",
+    "criterionName": "Criterion"
   }
 }

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Comparison, Variant, Parameter, Value } from '../types'
+import type { Comparison, Variant, Parameter, Value, Criterion } from '../types'
 import { loadData, saveData } from '../composables/useStorage'
 import { getSampleComparisons, SAMPLE_NAMES } from '../data/samples'
 import {
@@ -85,18 +85,27 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     return v
   }
 
-  function addParameter(comparisonId: string, name: string, weight: number, parameterType: 'number' | 'text' = 'number'): Parameter {
+  function addParameter(
+    comparisonId: string,
+    name: string,
+    weight: number,
+    parameterType: 'number' | 'text' = 'number',
+    unit?: string,
+    criteria?: Criterion[]
+  ): Parameter {
     const c = getComparison(comparisonId)
     if (!c) throw new Error('Comparison not found')
     const num = c.parameters.length + 1
+    const criteriaWithIds = (criteria ?? []).map((cr) => ({ ...cr, id: cr.id || generateId() }))
     const p: Parameter = {
       id: generateId(),
       name,
       number: num,
       weight,
       parameterType,
-      criteria: [],
+      criteria: criteriaWithIds,
     }
+    if (unit) p.unit = unit
     c.parameters.push(p)
     c.modifiedDate = new Date().toISOString()
     save()
@@ -112,11 +121,61 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     save()
   }
 
-  function updateParameter(comparisonId: string, parameterId: string, updates: Partial<Pick<Parameter, 'name' | 'weight'>>) {
+  function updateParameter(
+    comparisonId: string,
+    parameterId: string,
+    updates: Partial<Pick<Parameter, 'name' | 'weight' | 'unit' | 'parameterType' | 'criteria'>>
+  ) {
     const c = getComparison(comparisonId)
     const p = c?.parameters.find((x) => x.id === parameterId)
     if (!p) return
     Object.assign(p, updates)
+    c!.modifiedDate = new Date().toISOString()
+    save()
+  }
+
+  function addCriterion(comparisonId: string, parameterId: string, criterion: Omit<Criterion, 'id'>) {
+    const c = getComparison(comparisonId)
+    const p = c?.parameters.find((x) => x.id === parameterId)
+    if (!p) return null
+    const cr = { ...criterion, id: generateId() }
+    p.criteria = p.criteria ?? []
+    p.criteria.push(cr)
+    c!.modifiedDate = new Date().toISOString()
+    save()
+    return cr
+  }
+
+  function updateCriterion(
+    comparisonId: string,
+    parameterId: string,
+    criterionId: string,
+    updates: Partial<Pick<Criterion, 'name' | 'textValue' | 'numericValue' | 'score'>>
+  ) {
+    const c = getComparison(comparisonId)
+    const p = c?.parameters.find((x) => x.id === parameterId)
+    const cr = p?.criteria?.find((x) => x.id === criterionId)
+    if (!cr) return
+    Object.assign(cr, updates)
+    c!.modifiedDate = new Date().toISOString()
+    save()
+  }
+
+  function removeCriterion(comparisonId: string, parameterId: string, criterionId: string) {
+    const c = getComparison(comparisonId)
+    const p = c?.parameters.find((x) => x.id === parameterId)
+    if (!p?.criteria) return
+    p.criteria = p.criteria.filter((x) => x.id !== criterionId)
+    c!.modifiedDate = new Date().toISOString()
+    save()
+  }
+
+  function reorderCriteria(comparisonId: string, parameterId: string, criterionIds: string[]) {
+    const c = getComparison(comparisonId)
+    const p = c?.parameters.find((x) => x.id === parameterId)
+    if (!p?.criteria?.length) return
+    const byId = new Map(p.criteria.map((cr) => [cr.id, cr]))
+    p.criteria = criterionIds.map((id) => byId.get(id)).filter(Boolean) as typeof p.criteria
     c!.modifiedDate = new Date().toISOString()
     save()
   }
@@ -294,6 +353,10 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     updateParameter,
     addValue,
     setOrUpdateValue,
+    addCriterion,
+    updateCriterion,
+    removeCriterion,
+    reorderCriteria,
     addSampleData,
     addSingleSample,
     hasAllSamples,

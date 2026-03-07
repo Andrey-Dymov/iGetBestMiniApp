@@ -24,7 +24,8 @@
   "common": {
     "back": "返回",
     "cancel": "取消",
-    "delete": "删除"
+    "delete": "删除",
+    "save": "保存"
   },
   "comparisons": {
     "add": "添加",
@@ -62,5 +63,23 @@
     "weight": "重要性 (1–10)",
     "paramTypeNumber": "数值",
     "paramTypeText": "文本"
+  },
+  "paramForm": {
+    "basicInfo": "基本信息",
+    "unit": "单位",
+    "unitPlaceholder": "₽, kg, m²",
+    "criteria": "标准",
+    "addCriterion": "添加标准",
+    "template": "模板",
+    "template10": "10分制",
+    "template100": "100分制",
+    "templateYesNo": "是/否",
+    "yes": "是",
+    "no": "否",
+    "variants": "选项",
+    "score": "评分",
+    "sort": "排序",
+    "value": "值",
+    "criterionName": "标准"
   }
 }
