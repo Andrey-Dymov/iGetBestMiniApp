@@ -83,6 +83,7 @@
     "score": "Score",
     "sort": "Sort",
     "value": "Value",
-    "criterionName": "Criterion"
+    "criterionName": "Criterion",
+    "valueNumber": "Number"
   }
 }

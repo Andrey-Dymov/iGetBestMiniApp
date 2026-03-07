@@ -83,6 +83,7 @@
     "score": "Оценка",
     "sort": "Сортировка",
     "value": "Значение",
-    "criterionName": "Критерий"
+    "criterionName": "Критерий",
+    "valueNumber": "Число"
   }
 }

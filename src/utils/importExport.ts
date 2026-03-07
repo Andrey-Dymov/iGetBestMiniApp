@@ -318,10 +318,12 @@ export function importFromJSON(jsonStr: string): Comparison | null {
       if (dp.unit) p.unit = String(dp.unit)
       const criteria = Array.isArray(dp.criteria) ? dp.criteria : []
       criteria.forEach((dc: Record<string, unknown>) => {
+        const textVal = String(dc.value ?? dc.name ?? '')
+        const nameVal = String(dc.name ?? dc.value ?? '')
         p.criteria.push({
           id: id(),
-          name: String(dc.name ?? ''),
-          textValue: String(dc.value ?? dc.name ?? ''),
+          name: nameVal,
+          textValue: textVal,
           numericValue: p.parameterType === 'number' ? Number(dc.value ?? dc.numericValue) : undefined,
           score: Number(dc.score ?? 0),
         })

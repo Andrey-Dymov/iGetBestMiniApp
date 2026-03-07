@@ -101,9 +101,51 @@ function addCriterion() {
 function updateCriterion(cr: Criterion, updates: Partial<Criterion>) {
   Object.assign(cr, updates)
   if (updates.name !== undefined) {
-    cr.textValue = String(updates.name)
-    if (paramType.value === 'number') cr.numericValue = Number(updates.name)
+    const val = String(updates.name)
+    cr.textValue = val
+    if (paramType.value === 'number') {
+      const num = Number(val)
+      cr.numericValue = Number.isFinite(num) ? num : undefined
+    } else {
+      cr.numericValue = undefined
+    }
   }
+}
+
+function onCriterionInput(cr: Criterion, val: string) {
+  updateCriterion(cr, { name: val })
+}
+
+function onCriterionNumberInput(cr: Criterion, val: number | null) {
+  if (val == null || !Number.isFinite(val)) {
+    updateCriterion(cr, { name: '', textValue: '' })
+    cr.numericValue = undefined
+  } else {
+    const str = Number.isInteger(val) ? String(val) : String(val)
+    updateCriterion(cr, { name: str, textValue: str })
+    cr.numericValue = val
+  }
+}
+
+function sortCriteriaByType() {
+  const arr = [...criteria.value]
+  if (paramType.value === 'number') {
+    arr.sort((a, b) => (a.numericValue ?? 0) - (b.numericValue ?? 0))
+  } else {
+    arr.sort((a, b) => a.score - b.score)
+  }
+  criteria.value = arr
+}
+
+function onParamTypeChange() {
+  for (const cr of criteria.value) {
+    if (paramType.value === 'text') {
+      cr.numericValue = undefined
+    } else if (cr.textValue !== '' && Number.isFinite(Number(cr.textValue))) {
+      cr.numericValue = Number(cr.textValue)
+    }
+  }
+  sortCriteriaByType()
 }
 
 function removeCriterion(cr: Criterion) {
@@ -130,15 +172,27 @@ const sortedCriteria = computed(() => {
   return arr.sort((a, b) => a.score - b.score)
 })
 
+function normalizeParamType(v: string | undefined): 'number' | 'text' {
+  return v === 'number' ? 'number' : 'text'
+}
+
 watch(
   () => props.parameter,
   (p) => {
     if (p) {
       name.value = p.name
       unit.value = p.unit ?? ''
-      paramType.value = p.parameterType
+      paramType.value = normalizeParamType(p.parameterType)
       weight.value = p.weight
-      criteria.value = (p.criteria ?? []).map((c) => ({ ...c, id: c.id || id() }))
+      criteria.value = (p.criteria ?? []).map((c) => {
+        const cr = { ...c, id: c.id || id() }
+        if (!cr.name && cr.textValue) cr.name = cr.textValue
+        if (!cr.name && !cr.textValue && cr.numericValue != null) {
+          cr.name = String(cr.numericValue)
+          cr.textValue = String(cr.numericValue)
+        }
+        return cr
+      })
       const vals: Record<string, string | number | undefined> = {}
       for (const v of props.variants) {
         const val = props.getValue(v.id, p.id)
@@ -152,6 +206,16 @@ watch(
       weight.value = 5
       criteria.value = []
       variantValues.value = {}
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  paramType,
+  (v) => {
+    if (v !== 'number' && v !== 'text') {
+      paramType.value = 'text'
     }
   },
   { immediate: true }
@@ -175,18 +239,39 @@ watch(
 )
 
 function save() {
+  const type = normalizeParamType(paramType.value)
+  const normalizedCriteria = criteria.value.map((cr) => {
+    const c = { ...cr }
+    if (type === 'number') {
+      if (c.numericValue != null) {
+        c.name = String(c.numericValue)
+        c.textValue = String(c.numericValue)
+      } else if (c.name || c.textValue) {
+        const num = Number(c.name || c.textValue)
+        c.numericValue = Number.isFinite(num) ? num : undefined
+      }
+    } else {
+      c.numericValue = undefined
+    }
+    return c
+  })
   emit('save', {
     name: name.value.trim(),
     unit: unit.value.trim(),
-    parameterType: paramType.value,
+    parameterType: type,
     weight: weight.value,
-    criteria: criteria.value,
+    criteria: normalizedCriteria,
     variantValues: { ...variantValues.value },
   })
 }
 
 function cancel() {
   emit('cancel')
+}
+
+function setParamType(v: string | number) {
+  paramType.value = normalizeParamType(String(v))
+  onParamTypeChange()
 }
 </script>
 
@@ -210,7 +295,7 @@ function cancel() {
           </NSpace>
         </NFormItem>
         <NFormItem :label="t('paramForm.type')">
-          <NRadioGroup v-model:value="paramType">
+          <NRadioGroup :value="paramType || 'text'" @update:value="setParamType">
             <NRadioButton value="number">{{ t('results.paramTypeNumber') }}</NRadioButton>
             <NRadioButton value="text">{{ t('results.paramTypeText') }}</NRadioButton>
           </NRadioGroup>
@@ -230,11 +315,23 @@ function cancel() {
     <div v-else class="param-criteria-list">
       <div v-for="cr in sortedCriteria" :key="cr.id" class="param-criterion-row">
         <NInput
-          v-model:value="cr.name"
+          v-if="paramType === 'text'"
+          :value="cr.name || cr.textValue"
           size="small"
           :placeholder="t('paramForm.criterionName')"
+          :input-props="{ inputmode: 'text' }"
           class="param-criterion-input"
-          @update:value="(v) => updateCriterion(cr, { name: v })"
+          @update:value="(v) => onCriterionInput(cr, v ?? '')"
+        />
+        <NInputNumber
+          v-else
+          :value="cr.numericValue ?? null"
+          size="small"
+          :placeholder="t('paramForm.valueNumber')"
+          :precision="10"
+          clearable
+          class="param-criterion-input"
+          @update:value="(v) => onCriterionNumberInput(cr, v)"
         />
         <div class="param-criterion-scores">
           <button
@@ -297,7 +394,7 @@ function cancel() {
                 :class="{ active: String(variantValues[v.id]).toLowerCase() === String(cr.textValue).toLowerCase() }"
                 @click="variantValues[v.id] = cr.textValue"
               >
-                {{ cr.name }}
+                {{ cr.name || cr.textValue }}
               </button>
             </div>
             <NInput
@@ -335,10 +432,6 @@ function cancel() {
 
 .param-form-block {
   margin-top: 20px;
-  padding: 16px;
-  border: 1px solid var(--tg-theme-hint-color, rgba(0, 0, 0, 0.12));
-  border-radius: 10px;
-  background: var(--tg-theme-secondary-bg-color, rgba(0, 0, 0, 0.03));
 }
 
 .param-form-block:first-child {
@@ -409,8 +502,8 @@ function cancel() {
 }
 .param-criterion-input {
   flex: 1;
-  min-width: 60px;
-  max-width: 120px;
+  min-width: 100px;
+  max-width: 200px;
 }
 .param-criterion-scores {
   display: flex;

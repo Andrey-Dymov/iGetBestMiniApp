@@ -83,6 +83,7 @@
     "score": "评分",
     "sort": "排序",
     "value": "值",
-    "criterionName": "标准"
+    "criterionName": "标准",
+    "valueNumber": "数字"
   }
 }
