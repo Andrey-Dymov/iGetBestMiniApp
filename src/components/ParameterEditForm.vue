@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, TransitionGroup, nextTick } from 'vue'
+import { ref, watch, TransitionGroup, nextTick, computed } from 'vue'
 import {
   NForm,
   NFormItem,
@@ -10,15 +10,33 @@ import {
   NSpace,
   NRadioGroup,
   NRadioButton,
+  NModal,
+  NScrollbar,
 } from 'naive-ui'
 import { AddOutline } from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
 import { findScoreFromCriteria } from '../utils/importExport'
-import type { Parameter, Criterion, Variant, Value } from '../types'
+import type { Parameter, Criterion, Variant, Value, Comparison } from '../types'
+
+interface CriteriaTemplateItem {
+  name: string
+  textValue: string
+  numericValue?: number
+  score: number
+}
+
+interface CriteriaTemplate {
+  id: string
+  name: string
+  criteria: CriteriaTemplateItem[]
+  usageCount: number
+  unit?: string
+}
 
 const props = defineProps<{
   parameter: Parameter | null
   variants: Variant[]
+  allComparisons?: Comparison[]
   getValue: (variantId: string, parameterId: string) => Value | undefined
   isNew?: boolean
 }>()
@@ -51,24 +69,20 @@ const weight = ref(5)
 const criteria = ref<Criterion[]>([])
 const variantValues = ref<Record<string, VariantValue>>({})
 
+/** Шаблоны как в iGetBest (Swift): 2 точки для числовых шкал, интерполяция между ними */
 const TEMPLATES = {
-  scale10: [
-    { name: '0', textValue: '0', numericValue: 0, score: 0 },
-    { name: '1', textValue: '1', numericValue: 1, score: 1 },
-    { name: '2', textValue: '2', numericValue: 2, score: 2 },
-    { name: '3', textValue: '3', numericValue: 3, score: 3 },
-    { name: '4', textValue: '4', numericValue: 4, score: 4 },
-    { name: '5', textValue: '5', numericValue: 5, score: 5 },
-    { name: '6', textValue: '6', numericValue: 6, score: 6 },
-    { name: '7', textValue: '7', numericValue: 7, score: 7 },
-    { name: '8', textValue: '8', numericValue: 8, score: 8 },
-    { name: '9', textValue: '9', numericValue: 9, score: 9 },
-    { name: '10', textValue: '10', numericValue: 10, score: 10 },
-  ],
-  scale100: Array.from({ length: 11 }, (_, i) => {
-    const v = i * 10
-    return { name: String(v), textValue: String(v), numericValue: v, score: Math.round((i / 10) * 10) }
-  }),
+  get scale10() {
+    return [
+      { name: t('paramForm.templateScale10Min'), textValue: '0', numericValue: 0, score: 0 },
+      { name: t('paramForm.templateScale10Max'), textValue: '10', numericValue: 10, score: 10 },
+    ]
+  },
+  get scale100() {
+    return [
+      { name: t('paramForm.templateScale100Min'), textValue: '0', numericValue: 0, score: 0 },
+      { name: t('paramForm.templateScale100Max'), textValue: '100', numericValue: 100, score: 10 },
+    ]
+  },
   get yesNo() {
     return [
       { name: t('paramForm.no'), textValue: t('paramForm.no'), score: 0 },
@@ -81,16 +95,180 @@ function id() {
   return crypto.randomUUID()
 }
 
-function applyTemplate(key: 'scale10' | 'scale100' | 'yesNo') {
-  const template = key === 'yesNo' ? TEMPLATES.yesNo : TEMPLATES[key]
-  criteria.value = template.map((c) => ({
+const showTemplatesModal = ref(false)
+const templateSearchQuery = ref('')
+
+/** Ключ для группировки шаблонов с одинаковыми критериями. Нормализация для объединения дубликатов. */
+function createCriteriaKey(items: CriteriaTemplateItem[], type: 'number' | 'text'): string {
+  return items
+    .map((c) => {
+      const score = Math.round(c.score)
+      if (type === 'number') {
+        const v = c.numericValue ?? 0
+        return `${v}:${score}`
+      }
+      const tv = String(c.textValue ?? '').trim()
+      return `${tv}:${score}`
+    })
+    .join('|')
+}
+
+function getStaticTemplates(): CriteriaTemplate[] {
+  if (paramType.value === 'number') {
+    return [
+      {
+        id: 'static-scale10',
+        name: t('paramForm.template10'),
+        criteria: [...TEMPLATES.scale10],
+        usageCount: 1,
+      },
+      {
+        id: 'static-scale100',
+        name: t('paramForm.template100'),
+        criteria: [...TEMPLATES.scale100],
+        usageCount: 1,
+      },
+    ]
+  }
+  return [
+    {
+      id: 'static-yesNo',
+      name: t('paramForm.templateYesNo'),
+      criteria: [...TEMPLATES.yesNo],
+      usageCount: 1,
+    },
+  ]
+}
+
+function getMostFrequentUnit(units: string[]): string | undefined {
+  const nonEmpty = units.map((u) => (u ?? '').trim()).filter(Boolean)
+  if (nonEmpty.length === 0) return undefined
+  const counts = new Map<string, number>()
+  for (const u of nonEmpty) {
+    counts.set(u, (counts.get(u) ?? 0) + 1)
+  }
+  let max = 0
+  let result = ''
+  for (const [u, c] of counts) {
+    if (c > max) {
+      max = c
+      result = u
+    }
+  }
+  return result || undefined
+}
+
+function getDynamicTemplates(): CriteriaTemplate[] {
+  const comps = props.allComparisons ?? []
+  const type = paramType.value
+  const groups = new Map<
+    string,
+    { criteria: CriteriaTemplateItem[]; count: number; sourceNames: string[]; units: string[] }
+  >()
+
+  for (const comparison of comps) {
+    for (const param of comparison.parameters ?? []) {
+      if (param.parameterType !== type) continue
+      const rawCriteria = param.criteria ?? []
+      if (rawCriteria.length === 0) continue
+      const paramCriteria = rawCriteria.map((c) => ({
+        name: c.name,
+        textValue: c.textValue,
+        numericValue: c.numericValue,
+        score: c.score,
+      }))
+      const sorted = [...paramCriteria].sort((a, b) =>
+        type === 'number'
+          ? (a.numericValue ?? 0) - (b.numericValue ?? 0)
+          : a.score - b.score
+      )
+      const key = createCriteriaKey(sorted, type)
+      const existing = groups.get(key)
+      if (existing) {
+        existing.count += 1
+        existing.sourceNames.push(param.name)
+        existing.units.push(param.unit ?? '')
+      } else {
+        groups.set(key, {
+          criteria: sorted,
+          count: 1,
+          sourceNames: [param.name],
+          units: [param.unit ?? ''],
+        })
+      }
+    }
+  }
+
+  return Array.from(groups.entries()).map(([key, g]) => {
+    const uniqueNames = [...new Set(g.sourceNames)].slice(0, 3)
+    const name = g.count === 1 ? uniqueNames[0] ?? '' : uniqueNames.join(', ')
+    const unit = getMostFrequentUnit(g.units)
+    return {
+      id: key,
+      name,
+      criteria: g.criteria,
+      usageCount: g.count,
+      unit,
+    }
+  })
+}
+
+const allTemplates = computed(() => {
+  const dynamic = getDynamicTemplates()
+  const static_ = getStaticTemplates()
+  const seen = new Set<string>()
+  const result: CriteriaTemplate[] = []
+  for (const tpl of [...dynamic, ...static_]) {
+    if (tpl.criteria.length === 0) continue
+    const key = createCriteriaKey(tpl.criteria, paramType.value)
+    if (!seen.has(key)) {
+      seen.add(key)
+      result.push(tpl)
+    }
+  }
+  return result.sort((a, b) => b.usageCount - a.usageCount)
+})
+
+const filteredTemplates = computed(() => {
+  const q = templateSearchQuery.value.trim().toLowerCase()
+  if (!q) return allTemplates.value
+  return allTemplates.value.filter((tpl) => {
+    const nameMatch = tpl.name.toLowerCase().includes(q)
+    const unitMatch = (tpl.unit ?? '').toLowerCase().includes(q)
+    const criteriaMatch = tpl.criteria.some(
+      (cr) =>
+        (cr.name ?? '').toLowerCase().includes(q) ||
+        (cr.textValue ?? '').toLowerCase().includes(q) ||
+        String(cr.score).includes(q) ||
+        (cr.numericValue != null && String(cr.numericValue).includes(q))
+    )
+    return nameMatch || unitMatch || criteriaMatch
+  })
+})
+
+function onTemplatesModalUpdate(show: boolean) {
+  showTemplatesModal.value = show
+  if (!show) templateSearchQuery.value = ''
+}
+
+function applyTemplateFrom(template: CriteriaTemplate) {
+  criteria.value = template.criteria.map((c) => ({
     id: id(),
     name: c.name,
     textValue: c.textValue ?? c.name,
-    numericValue: 'numericValue' in c ? (c.numericValue as number) : undefined,
+    numericValue: c.numericValue,
     score: c.score,
   }))
   syncDisplayedCriteria()
+  showTemplatesModal.value = false
+}
+
+function onAddOrSelectTemplate() {
+  if (criteria.value.length === 0) {
+    showTemplatesModal.value = true
+  } else {
+    addCriterion()
+  }
 }
 
 function addCriterion() {
@@ -369,20 +547,14 @@ function formatNumber(v: number | null): string {
     <div class="param-form-block">
       <div class="param-form-section-header">
         <h4 class="param-form-section-title">{{ t('paramForm.criteria') }}</h4>
-        <NButton @click="addCriterion">
+        <NButton @click="onAddOrSelectTemplate">
           <template #icon>
             <NIcon><AddOutline /></NIcon>
           </template>
-          {{ t('paramForm.criterionName') }}
+          {{ criteria.length === 0 ? t('paramForm.selectTemplate') : t('paramForm.criterionName') }}
         </NButton>
       </div>
-    <div v-if="criteria.length === 0" class="param-templates">
-      <span class="param-templates-label">{{ t('paramForm.template') }}:</span>
-      <NButton size="small" @click="applyTemplate('scale10')">{{ t('paramForm.template10') }}</NButton>
-      <NButton size="small" @click="applyTemplate('scale100')">{{ t('paramForm.template100') }}</NButton>
-      <NButton size="small" @click="applyTemplate('yesNo')">{{ t('paramForm.templateYesNo') }}</NButton>
-    </div>
-    <div v-else>
+    <div v-if="criteria.length > 0">
       <TransitionGroup name="criterion-move" tag="div" class="param-criteria-list">
         <div v-for="cr in displayedCriteria" :key="cr.id" class="param-criterion-row">
           <NInput
@@ -485,6 +657,52 @@ function formatNumber(v: number | null): string {
       <NButton type="primary" :disabled="!name.trim()" @click="save">{{ isNew ? t('comparisons.create') : t('common.save') }}</NButton>
     </NSpace>
   </NForm>
+
+  <NModal :show="showTemplatesModal" @update:show="onTemplatesModalUpdate">
+    <div class="param-templates-modal">
+      <h4 class="param-templates-modal-title">{{ t('paramForm.selectTemplate') }}</h4>
+      <NInput
+        v-model:value="templateSearchQuery"
+        :placeholder="t('paramForm.searchTemplate')"
+        clearable
+        size="small"
+        class="param-templates-search"
+      />
+      <NScrollbar style="max-height: 50vh">
+        <div v-if="filteredTemplates.length === 0" class="param-templates-empty">
+          {{ t('paramForm.searchNoResults') }}
+        </div>
+        <div v-else class="param-templates-list">
+          <button
+            v-for="tpl in filteredTemplates"
+            :key="tpl.id"
+            type="button"
+            class="param-template-item"
+            @click="applyTemplateFrom(tpl)"
+          >
+            <div class="param-template-header">
+              <span class="param-template-name">{{ tpl.name }}</span>
+              <span v-if="tpl.unit" class="param-template-unit">{{ tpl.unit }}</span>
+              <span class="param-template-count">{{ tpl.usageCount }}</span>
+            </div>
+            <div class="param-template-criteria">
+              <span
+                v-for="cr in tpl.criteria"
+                :key="cr.textValue + '-' + cr.score"
+                class="param-template-criterion"
+                :class="'score-pale-' + Math.min(10, Math.floor(cr.score))"
+              >
+                {{ cr.name || cr.textValue }} → {{ cr.score }}
+              </span>
+            </div>
+          </button>
+        </div>
+      </NScrollbar>
+      <NSpace justify="end" class="param-templates-modal-actions">
+        <NButton @click="showTemplatesModal = false">{{ t('common.cancel') }}</NButton>
+      </NSpace>
+    </div>
+  </NModal>
 </template>
 
 <style scoped>
@@ -547,17 +765,6 @@ function formatNumber(v: number | null): string {
   min-width: 2ch;
   text-align: center;
   font-weight: 600;
-}
-.param-templates {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 12px;
-}
-.param-templates-label {
-  font-size: 0.9rem;
-  color: var(--tg-theme-hint-color, #666);
 }
 .param-criteria-list {
   display: flex;
@@ -647,23 +854,22 @@ function formatNumber(v: number | null): string {
 .param-variant-badge {
   font-size: 0.56rem;
   font-weight: 600;
-  color: #fff;
+  color: #333;
   padding: 1px 6px;
   border-radius: 4px;
   flex-shrink: 0;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
 }
-.param-variant-badge.score-badge-0 { background: #cc0000; }
-.param-variant-badge.score-badge-1 { background: #e64d00; }
-.param-variant-badge.score-badge-2 { background: #ff7f00; }
-.param-variant-badge.score-badge-3 { background: #ff9900; }
-.param-variant-badge.score-badge-4 { background: #e6b300; }
-.param-variant-badge.score-badge-5 { background: #ccb300; }
-.param-variant-badge.score-badge-6 { background: #99a600; }
-.param-variant-badge.score-badge-7 { background: #66a600; }
-.param-variant-badge.score-badge-8 { background: #33a600; }
-.param-variant-badge.score-badge-9 { background: #1a8c00; }
-.param-variant-badge.score-badge-10 { background: #006600; }
+.param-variant-badge.score-badge-0 { background: rgba(204, 0, 0, 0.35); }
+.param-variant-badge.score-badge-1 { background: rgba(230, 77, 0, 0.35); }
+.param-variant-badge.score-badge-2 { background: rgba(255, 127, 0, 0.35); }
+.param-variant-badge.score-badge-3 { background: rgba(255, 153, 0, 0.35); }
+.param-variant-badge.score-badge-4 { background: rgba(230, 179, 0, 0.35); }
+.param-variant-badge.score-badge-5 { background: rgba(204, 179, 0, 0.35); }
+.param-variant-badge.score-badge-6 { background: rgba(153, 166, 0, 0.35); }
+.param-variant-badge.score-badge-7 { background: rgba(102, 166, 0, 0.35); }
+.param-variant-badge.score-badge-8 { background: rgba(51, 166, 0, 0.35); }
+.param-variant-badge.score-badge-9 { background: rgba(26, 140, 0, 0.35); }
+.param-variant-badge.score-badge-10 { background: rgba(0, 102, 0, 0.35); }
 .param-variant-buttons {
   display: flex;
   flex-wrap: wrap;
@@ -700,5 +906,101 @@ function formatNumber(v: number | null): string {
 .param-criterion-btn.score-10 { background: #006600; }
 .param-form-actions {
   margin-top: 20px;
+}
+.param-templates-modal {
+  padding: 20px;
+  background: var(--tg-theme-bg-color, #fff);
+  border-radius: 12px;
+  max-width: 90vw;
+}
+.param-templates-modal-title {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.param-templates-search {
+  margin-bottom: 12px;
+}
+.param-templates-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--tg-theme-hint-color, #666);
+  font-size: 0.9rem;
+}
+.param-templates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.param-template-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--tg-theme-hint-color, #ccc);
+  border-radius: 8px;
+  background: var(--tg-theme-bg-color, #fff);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+}
+.param-template-item:hover {
+  background: rgba(128, 128, 128, 0.08);
+}
+.param-template-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+}
+.param-template-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+.param-template-unit {
+  font-size: 0.525rem;
+  color: #555;
+  background: #bbb;
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.param-template-count {
+  font-size: 0.525rem;
+  color: #fff;
+  background: #999;
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.param-template-criteria {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--tg-theme-hint-color, #666);
+}
+.param-template-criterion {
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.param-template-criterion.score-pale-0 { background: rgba(204, 0, 0, 0.25); }
+.param-template-criterion.score-pale-1 { background: rgba(230, 77, 0, 0.25); }
+.param-template-criterion.score-pale-2 { background: rgba(255, 127, 0, 0.25); }
+.param-template-criterion.score-pale-3 { background: rgba(255, 153, 0, 0.25); }
+.param-template-criterion.score-pale-4 { background: rgba(230, 179, 0, 0.25); }
+.param-template-criterion.score-pale-5 { background: rgba(204, 179, 0, 0.25); }
+.param-template-criterion.score-pale-6 { background: rgba(153, 166, 0, 0.25); }
+.param-template-criterion.score-pale-7 { background: rgba(102, 166, 0, 0.25); }
+.param-template-criterion.score-pale-8 { background: rgba(51, 166, 0, 0.25); }
+.param-template-criterion.score-pale-9 { background: rgba(26, 140, 0, 0.25); }
+.param-template-criterion.score-pale-10 { background: rgba(0, 102, 0, 0.25); }
+.param-templates-modal-actions {
+  margin-top: 16px;
 }
 </style>

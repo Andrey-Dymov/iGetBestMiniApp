@@ -354,6 +354,7 @@ function onParamFormSave(data: ParameterFormData) {
           v-if="comparison"
           :parameter="editingParam"
           :variants="comparison.variants"
+          :all-comparisons="store.sortedComparisons"
           :get-value="getValue"
           :is-new="!editingParam"
           @save="onParamFormSave"
