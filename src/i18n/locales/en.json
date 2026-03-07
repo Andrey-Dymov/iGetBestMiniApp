@@ -91,6 +91,9 @@
     "sort": "Sort",
     "value": "Value",
     "criterionName": "Criterion",
+    "criteriaEmptyHint": "Add criteria to evaluate options",
+    "criteriaEmptyWhy": "Criteria define the scoring scale: each value (number or text) maps to a score from 0 to 10. These scores are used to calculate the total for each option.",
+    "criteriaEmptyExamples": "Examples: «0 → 0, 10 → 10» for 0–10 scale; «No → 0, Yes → 10»; «Affordable → 10, Mid → 7, Expensive → 3» for price.",
     "valueNumber": "Number"
   }
 }

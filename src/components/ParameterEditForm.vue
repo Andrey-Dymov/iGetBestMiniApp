@@ -263,14 +263,6 @@ function applyTemplateFrom(template: CriteriaTemplate) {
   showTemplatesModal.value = false
 }
 
-function onAddOrSelectTemplate() {
-  if (criteria.value.length === 0) {
-    showTemplatesModal.value = true
-  } else {
-    addCriterion()
-  }
-}
-
 function addCriterion() {
   const last = criteria.value[criteria.value.length - 1]
   const nextScore = last ? Math.min(10, last.score + 1) : 0
@@ -462,12 +454,15 @@ watch(
   () => props.variants,
   (vars) => {
     const p = props.parameter
-    if (!p) return
     const vals = { ...variantValues.value }
     for (const v of vars) {
       if (vals[v.id] === undefined) {
-        const val = props.getValue(v.id, p.id)
-        vals[v.id] = { textValue: val?.textValue, numericValue: val?.numericValue }
+        if (p) {
+          const val = props.getValue(v.id, p.id)
+          vals[v.id] = { textValue: val?.textValue, numericValue: val?.numericValue }
+        } else {
+          vals[v.id] = {}
+        }
       }
     }
     variantValues.value = vals
@@ -547,14 +542,22 @@ function formatNumber(v: number | null): string {
     <div class="param-form-block">
       <div class="param-form-section-header">
         <h4 class="param-form-section-title">{{ t('paramForm.criteria') }}</h4>
-        <NButton @click="onAddOrSelectTemplate">
-          <template #icon>
-            <NIcon><AddOutline /></NIcon>
-          </template>
-          {{ criteria.length === 0 ? t('paramForm.selectTemplate') : t('paramForm.criterionName') }}
-        </NButton>
+        <NSpace>
+          <NButton @click="showTemplatesModal = true">{{ t('paramForm.template') }}</NButton>
+          <NButton @click="addCriterion">
+            <template #icon>
+              <NIcon><AddOutline /></NIcon>
+            </template>
+            {{ t('paramForm.criterionName') }}
+          </NButton>
+        </NSpace>
       </div>
-    <div v-if="criteria.length > 0">
+    <div v-if="criteria.length === 0" class="param-criteria-empty">
+      <p class="param-criteria-empty-hint">{{ t('paramForm.criteriaEmptyHint') }}</p>
+      <p class="param-criteria-empty-why">{{ t('paramForm.criteriaEmptyWhy') }}</p>
+      <p class="param-criteria-empty-examples">{{ t('paramForm.criteriaEmptyExamples') }}</p>
+    </div>
+    <div v-else>
       <TransitionGroup name="criterion-move" tag="div" class="param-criteria-list">
         <div v-for="cr in displayedCriteria" :key="cr.id" class="param-criterion-row">
           <NInput
@@ -594,7 +597,7 @@ function formatNumber(v: number | null): string {
     </div>
     </div>
 
-    <template v-if="parameter && variants.length > 0">
+    <template v-if="variants.length > 0 && criteria.length > 0">
       <div class="param-form-block">
         <h4 class="param-form-section-title">{{ t('paramForm.scoresVariants') }}</h4>
         <div class="param-variants-grid">
@@ -765,6 +768,27 @@ function formatNumber(v: number | null): string {
   min-width: 2ch;
   text-align: center;
   font-weight: 600;
+}
+.param-criteria-empty {
+  padding: 20px 0;
+  color: var(--tg-theme-hint-color, #666);
+}
+.param-criteria-empty-hint {
+  margin: 0 0 8px 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--tg-theme-hint-color, #666);
+}
+.param-criteria-empty-why {
+  margin: 0 0 12px 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.param-criteria-empty-examples {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.9;
+  line-height: 1.4;
 }
 .param-criteria-list {
   display: flex;
@@ -938,6 +962,7 @@ function formatNumber(v: number | null): string {
   align-items: flex-start;
   gap: 6px;
   padding: 12px;
+  min-width: 0;
   border: 1px solid var(--tg-theme-hint-color, #ccc);
   border-radius: 8px;
   background: var(--tg-theme-bg-color, #fff);
@@ -982,6 +1007,8 @@ function formatNumber(v: number | null): string {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  width: 100%;
+  min-width: 0;
   font-size: 0.8rem;
   color: var(--tg-theme-hint-color, #666);
 }
