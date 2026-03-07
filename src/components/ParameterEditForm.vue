@@ -273,6 +273,12 @@ function setParamType(v: string | number) {
   paramType.value = normalizeParamType(String(v))
   onParamTypeChange()
 }
+
+/** Формат числа: целые без .0, дробные — как введено */
+function formatNumber(v: number | null): string {
+  if (v == null || !Number.isFinite(v)) return ''
+  return Number.isInteger(v) ? String(v) : String(v)
+}
 </script>
 
 <template>
@@ -328,7 +334,7 @@ function setParamType(v: string | number) {
           :value="cr.numericValue ?? null"
           size="small"
           :placeholder="t('paramForm.valueNumber')"
-          :precision="10"
+          :format="formatNumber"
           clearable
           class="param-criterion-input"
           @update:value="(v) => onCriterionNumberInput(cr, v)"
@@ -369,12 +375,13 @@ function setParamType(v: string | number) {
           <span class="param-variant-label">{{ v.name }}</span>
           <template v-if="paramType === 'number'">
             <NInputNumber
-              :model-value="typeof variantValues[v.id] === 'number' ? variantValues[v.id] : undefined"
+              :value="typeof variantValues[v.id] === 'number' ? (variantValues[v.id] as number) : null"
               size="small"
               :placeholder="t('paramForm.value')"
+              :format="formatNumber"
               clearable
               class="param-variant-input"
-              @update:model-value="(val: number | null) => { variantValues[v.id] = val ?? undefined }"
+              @update:value="(val: number | null) => { variantValues[v.id] = val ?? undefined }"
             />
             <span
               v-if="variantValues[v.id] != null"
