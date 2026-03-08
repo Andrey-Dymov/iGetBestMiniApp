@@ -37,6 +37,7 @@ const sortedParameters = computed(() => {
 })
 
 const displayedParameters = ref<Parameter[]>([])
+const displayedVariants = ref<Variant[]>([])
 let reorderTimeout: ReturnType<typeof setTimeout> | null = null
 const reorderScheduled = ref(false)
 
@@ -55,6 +56,26 @@ watch(
       displayedParameters.value.every((p, i) => p.id === list[i]?.id)
     if (!idsMatch) {
       displayedParameters.value = [...list]
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  [comparison, sortedVariants],
+  ([c, sorted]) => {
+    const list = (sorted as Variant[]) ?? []
+    if (!c || list.length === 0) {
+      displayedVariants.value = []
+      reorderScheduled.value = false
+      return
+    }
+    if (reorderScheduled.value) return
+    const idsMatch =
+      displayedVariants.value.length === list.length &&
+      displayedVariants.value.every((v, i) => v.id === list[i]?.id)
+    if (!idsMatch) {
+      displayedVariants.value = [...list]
     }
   },
   { immediate: true }
@@ -199,6 +220,7 @@ function setParamWeight(p: Parameter, weight: number) {
   if (reorderTimeout) clearTimeout(reorderTimeout)
   reorderTimeout = setTimeout(() => {
     displayedParameters.value = [...sortedParameters.value]
+    displayedVariants.value = [...sortedVariants.value]
     reorderScheduled.value = false
     reorderTimeout = null
   }, 1000)
@@ -338,8 +360,8 @@ function onParamFormDelete() {
         <div class="table-scroll">
           <table class="results-table">
             <thead>
-              <tr>
-                <th class="param-col">
+              <TransitionGroup name="variant-move" tag="tr">
+                <th key="param-col" class="param-col">
                   <div v-if="hasTableData()" class="table-actions">
                     <NButton size="small" @click="openAddParam">
                       <template #icon>
@@ -355,7 +377,7 @@ function onParamFormDelete() {
                     </NButton>
                   </div>
                 </th>
-                <th v-for="(v, i) in sortedVariants" :key="v.id" class="variant-col variant-col-clickable" @click="openEditVariant(v)">
+                <th v-for="(v, i) in displayedVariants" :key="v.id" class="variant-col variant-col-clickable" @click="openEditVariant(v)">
                   <div class="variant-header">
                     <span class="variant-name">{{ v.name }}</span>
                     <div class="variant-score-row">
@@ -364,7 +386,7 @@ function onParamFormDelete() {
                     </div>
                   </div>
                 </th>
-              </tr>
+              </TransitionGroup>
             </thead>
             <TransitionGroup name="param-move" tag="tbody" class="param-tbody">
               <tr v-for="p in displayedParameters" :key="p.id" class="param-row">
@@ -388,7 +410,7 @@ function onParamFormDelete() {
                     </div>
                   </div>
                 </td>
-                <td v-for="v in sortedVariants" :key="v.id" class="cell" @click="openValueEdit(v, p)">
+                <td v-for="v in displayedVariants" :key="v.id" class="cell" @click="openValueEdit(v, p)">
                   <div class="cell-value">
                     <span>{{ formatCellValue(getValue(v.id, p.id)) }}</span>
                     <span
@@ -519,6 +541,10 @@ function onParamFormDelete() {
 }
 
 .param-move-move {
+  transition: transform 0.5s ease;
+}
+
+.variant-move-move {
   transition: transform 0.5s ease;
 }
 
