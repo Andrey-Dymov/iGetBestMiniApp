@@ -401,10 +401,9 @@ function addSingleSample(name: string) {
 
 .header-left,
 .header-right {
-  flex: 1;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  min-width: 0;
 }
 
 .header-left {
@@ -418,11 +417,16 @@ function addSingleSample(name: string) {
 
 .list-title {
   margin: 0;
+  padding: 0 8px;
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--tg-theme-text-color, #000);
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
   text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .lang-btn {

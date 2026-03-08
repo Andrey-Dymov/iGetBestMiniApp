@@ -379,18 +379,23 @@ function onParamFormDelete() {
                 </th>
                 <th v-for="(v, i) in displayedVariants" :key="v.id" class="variant-col variant-col-clickable" @click="openEditVariant(v)">
                   <div class="variant-header">
-                    <span class="variant-name">{{ v.name }}</span>
-                    <div class="variant-score-row">
-                      <span class="variant-rank">{{ i + 1 }}</span>
-                      <span class="variant-score">{{ Math.round(v.totalScore) }}</span>
+                    <div class="variant-name-wrap">
+                      <span class="variant-name">{{ v.name }}</span>
                     </div>
-                    <img
-                      v-if="v.imageUrl"
-                      :src="v.imageUrl"
-                      :alt="v.name"
-                      class="variant-header-thumb"
-                      @error="($event.target as HTMLImageElement)?.style?.setProperty('display', 'none')"
-                    />
+                    <div class="variant-footer">
+                      <div class="variant-score-row">
+                        <span class="variant-rank">{{ i + 1 }}</span>
+                        <span class="variant-score">{{ Math.round(v.totalScore) }}</span>
+                      </div>
+                      <img
+                        v-if="v.imageUrl"
+                        :src="v.imageUrl"
+                        :alt="v.name"
+                        class="variant-header-thumb"
+                        @error="($event.target as HTMLImageElement)?.style?.setProperty('display', 'none')"
+                      />
+                      <div v-else class="variant-thumb-placeholder"></div>
+                    </div>
                   </div>
                 </th>
               </TransitionGroup>
@@ -571,8 +576,11 @@ function onParamFormDelete() {
 }
 
 .variant-col {
-  min-width: 90px;
+  min-width: 68px;
+  max-width: 88px;
+  width: 80px;
   text-align: center;
+  padding: 8px 6px !important;
 }
 .variant-col-clickable {
   cursor: pointer;
@@ -581,30 +589,60 @@ function onParamFormDelete() {
 .variant-header {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  min-height: 88px;
+  justify-content: space-between;
   align-items: center;
+  gap: 4px;
 }
 
-.variant-header-thumb {
-  height: 36px;
-  width: auto;
-  max-width: 56px;
-  object-fit: contain;
-  border-radius: 6px;
-  flex-shrink: 0;
-  margin-top: 4px;
+.variant-name-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .variant-name {
   font-weight: 600;
+  font-size: 0.85em;
   line-height: 1.2;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  text-align: center;
+  max-width: 100%;
+}
+
+.variant-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.variant-header-thumb {
+  height: 32px;
+  width: auto;
+  max-width: 48px;
+  object-fit: contain;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.variant-thumb-placeholder {
+  height: 32px;
+  min-width: 40px;
+  flex-shrink: 0;
 }
 
 .variant-score-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .variant-rank {
@@ -697,7 +735,10 @@ function onParamFormDelete() {
 .cell {
   text-align: center;
   cursor: pointer;
-  padding: 6px 12px;
+  padding: 6px 8px !important;
+  min-width: 68px;
+  max-width: 88px;
+  width: 80px;
 }
 
 .cell-value {
