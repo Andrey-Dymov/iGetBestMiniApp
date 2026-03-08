@@ -93,15 +93,15 @@ function deleteComparison(id: string, e?: Event) {
 
 function formatDate(iso: string) {
   const d = new Date(iso)
-  const now = new Date()
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-  const dateStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
-  const isToday = dateStart === todayStart
-
-  if (isToday) {
-    return d.toLocaleTimeString(dateLocale.value, { hour: '2-digit', minute: '2-digit' })
-  }
-  return d.toLocaleDateString(dateLocale.value, { day: 'numeric', month: 'short', year: '2-digit' })
+  const parts = new Intl.DateTimeFormat(dateLocale.value, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    weekday: 'short'
+  }).formatToParts(d)
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? ''
+  const month = get('month').replace(/\.$/, '')
+  return `${get('day')} ${month} ${get('year')} ${get('weekday')}`.trim()
 }
 
 function sortedVariants(c: { variants: { id: string; name: string; totalScore: number; imageUrl?: string }[] }) {
