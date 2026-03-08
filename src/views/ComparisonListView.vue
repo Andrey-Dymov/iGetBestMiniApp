@@ -433,6 +433,7 @@ function addSingleSample(name: string) {
   cursor: pointer;
 }
 
+
 .date {
   font-size: 0.85em;
   color: var(--tg-theme-hint-color, #999);
@@ -458,10 +459,12 @@ function addSingleSample(name: string) {
 .meta {
   font-size: 0.9em;
   color: var(--tg-theme-hint-color, #999);
+  line-height: 1.35;
+  margin-top: -8px;
 }
 
 .meta-line {
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .meta-line:first-child {
@@ -527,7 +530,7 @@ function addSingleSample(name: string) {
 .variant-images-row {
   display: flex;
   gap: 4px;
-  margin-top: 6px;
+  margin-top: 2px;
   overflow-x: auto;
 }
 
