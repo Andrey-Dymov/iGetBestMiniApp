@@ -877,7 +877,8 @@ function formatNumber(v: number | null): string {
   font-size: 0.85rem;
   font-weight: 600;
   flex-shrink: 0;
-  min-width: 80px;
+  width: 120px;
+  min-width: 120px;
 }
 .param-variant-input {
   flex: 1;
@@ -907,14 +908,15 @@ function formatNumber(v: number | null): string {
   display: flex;
   flex-wrap: wrap;
   gap: 3px;
+  justify-content: flex-start;
   flex: 1;
   min-width: 0;
 }
 .param-criterion-btn {
-  padding: 3px 6px;
+  padding: 4px 7px;
   border: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 4px;
-  font-size: 0.42rem;
+  border-radius: 5px;
+  font-size: 0.5rem;
   cursor: pointer;
   color: rgba(255, 255, 255, 0.9);
 }

@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch, TransitionGroup } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useComparisonsStore } from '../stores/comparisons'
-import { NButton, NEmpty, NSpace, NModal, NInput, NForm, NFormItem, NIcon } from 'naive-ui'
+import { NButton, NEmpty, NSpace, NModal, NInput, NForm, NFormItem, NIcon, NSlider } from 'naive-ui'
 import { AddOutline } from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
 import { recalculateTotalScores, findScoreFromCriteria } from '../utils/importExport'
@@ -355,10 +355,13 @@ function onParamFormDelete() {
                     </NButton>
                   </div>
                 </th>
-                <th v-for="v in sortedVariants" :key="v.id" class="variant-col variant-col-clickable" @click="openEditVariant(v)">
+                <th v-for="(v, i) in sortedVariants" :key="v.id" class="variant-col variant-col-clickable" @click="openEditVariant(v)">
                   <div class="variant-header">
                     <span class="variant-name">{{ v.name }}</span>
-                    <span class="variant-score">{{ Math.round(v.totalScore) }}</span>
+                    <div class="variant-score-row">
+                      <span class="variant-rank">{{ i + 1 }}</span>
+                      <span class="variant-score">{{ Math.round(v.totalScore) }}</span>
+                    </div>
                   </div>
                 </th>
               </tr>
@@ -367,19 +370,19 @@ function onParamFormDelete() {
               <tr v-for="p in displayedParameters" :key="p.id" class="param-row">
                 <td class="param-col" @click="openEditParam(p)">
                   <div class="param-header">
-                    <span class="param-name param-name-upper">{{ p.name }}{{ p.unit ? `, ${p.unit}` : '' }}</span>
-                    <div class="param-weight-scale" @click.stop>
-                      <button
-                        v-for="i in 11"
-                        :key="i - 1"
-                        type="button"
-                        class="weight-dot"
-                        :class="{
-                          filled: (i - 1) <= p.weight,
-                          zero: i === 1,
-                        }"
-                        :title="String(i - 1)"
-                        @click="setParamWeight(p, i - 1)"
+                    <div class="param-head-row">
+                      <span class="param-name param-name-upper">{{ p.name }}</span>
+                      <span v-if="p.unit" class="param-unit">{{ p.unit }}</span>
+                    </div>
+                    <div class="param-weight-row" @click.stop>
+                      <NSlider
+                        :value="p.weight"
+                        :min="0"
+                        :max="10"
+                        :step="1"
+                        :tooltip="false"
+                        class="param-weight-slider"
+                        @update:value="(v: number) => setParamWeight(p, v)"
                       />
                       <span class="param-weight-badge">{{ p.weight }}</span>
                     </div>
@@ -393,7 +396,7 @@ function onParamFormDelete() {
                       class="cell-score-badge"
                       :class="'score-' + Math.min(10, Math.floor(getValue(v.id, p.id)!.score))"
                     >
-                      {{ Math.round(getValue(v.id, p.id)!.score) }}/{{ Math.round(getValue(v.id, p.id)!.score * p.weight) }}
+                      {{ Math.round(getValue(v.id, p.id)!.score) }}
                     </span>
                   </div>
                 </td>
@@ -559,6 +562,27 @@ function onParamFormDelete() {
   line-height: 1.2;
 }
 
+.variant-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.variant-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35em;
+  height: 1.35em;
+  flex-shrink: 0;
+  color: var(--tg-theme-hint-color, #666);
+  background: #e0e0e0;
+  border-radius: 50%;
+  font-size: 0.8em;
+  font-weight: 600;
+}
+
 .variant-score {
   font-size: 0.85em;
   color: var(--tg-theme-hint-color, #999);
@@ -572,10 +596,18 @@ function onParamFormDelete() {
   line-height: 1.2;
 }
 
+.param-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .param-name {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
 }
 
 .param-name-upper {
@@ -584,36 +616,33 @@ function onParamFormDelete() {
   color: var(--tg-theme-hint-color, #666);
 }
 
-.param-weight-scale {
+.param-unit {
+  font-size: 0.65rem;
+  color: var(--tg-theme-hint-color, #999);
+  text-transform: none;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.param-weight-row {
   display: flex;
   align-items: center;
-  gap: 2px;
-  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
 }
 
-.weight-dot {
-  width: 8px;
-  height: 8px;
-  border: none;
-  border-radius: 50%;
-  padding: 0;
-  cursor: pointer;
-  background: rgba(128, 128, 128, 0.3);
-  transition: background 0.15s;
+.param-weight-slider {
+  flex: 1;
+  min-width: 0;
 }
 
-.weight-dot.filled {
-  background: var(--tg-theme-button-color, #18a058);
+.param-weight-slider :deep(.n-slider-rail) {
+  height: 6px;
 }
 
-.weight-dot.zero {
-  background: transparent;
-  box-shadow: inset 0 0 0 1.5px var(--tg-theme-text-color, #333);
-}
-
-.weight-dot.zero.filled {
-  background: var(--tg-theme-button-color, #18a058);
-  box-shadow: none;
+.param-weight-slider :deep(.n-slider-handle) {
+  width: 14px;
+  height: 14px;
 }
 
 .param-weight-badge {
@@ -623,22 +652,20 @@ function onParamFormDelete() {
   background: rgba(128, 128, 128, 0.2);
   padding: 2px 6px;
   border-radius: 4px;
-  margin-left: 4px;
   min-width: 22px;
   text-align: center;
 }
 
 .cell {
   text-align: center;
-}
-
-.cell {
   cursor: pointer;
+  padding: 6px 12px;
 }
 
 .cell-value {
-  min-height: 1.2em;
-  line-height: 32px;
+  height: fit-content;
+  min-height: 0;
+  line-height: 1.2;
   font-weight: 600;
   display: flex;
   flex-direction: column;
