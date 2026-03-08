@@ -100,6 +100,7 @@
   },
   "variantForm": {
     "images": "Изображение",
-    "imageUrlPlaceholder": "Вставьте ссылку на картинку"
+    "imageUrlPlaceholder": "Вставьте ссылку на картинку",
+    "pickFromDevice": "С устройства"
   }
 }

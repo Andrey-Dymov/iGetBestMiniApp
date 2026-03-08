@@ -100,6 +100,7 @@
   },
   "variantForm": {
     "images": "Image",
-    "imageUrlPlaceholder": "Paste image URL"
+    "imageUrlPlaceholder": "Paste image URL",
+    "pickFromDevice": "From device"
   }
 }

@@ -27,6 +27,62 @@ const { t } = useI18n()
 const name = ref('')
 const parameterValues = ref<Record<string, VariantValue>>({})
 const imageUrl = ref('')
+const fileInputRef = ref<HTMLInputElement | null>(null)
+
+function triggerFilePick() {
+  fileInputRef.value?.click()
+}
+
+async function onFilePicked(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file || !file.type.startsWith('image/')) return
+  try {
+    const dataUrl = await fileToDataUrl(file)
+    imageUrl.value = dataUrl
+  } catch {
+    // ignore
+  }
+  input.value = ''
+}
+
+/** Сжимает изображение и возвращает Data URL (max 400px, jpeg 0.8) */
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const max = 400
+      let w = img.width
+      let h = img.height
+      if (w > max || h > max) {
+        if (w > h) {
+          h = Math.round((h * max) / w)
+          w = max
+        } else {
+          w = Math.round((w * max) / h)
+          h = max
+        }
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        reject(new Error('No canvas'))
+        return
+      }
+      ctx.drawImage(img, 0, 0, w, h)
+      resolve(canvas.toDataURL('image/jpeg', 0.8))
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('Load failed'))
+    }
+    img.src = url
+  })
+}
 
 watch(
   () => props.variant,
@@ -135,6 +191,14 @@ const isEdit = () => props.variant != null
           size="small"
           class="variant-image-url-input"
           @keyup.enter="save"
+        />
+        <NButton size="small" @click="triggerFilePick">{{ t('variantForm.pickFromDevice') }}</NButton>
+        <input
+          ref="fileInputRef"
+          type="file"
+          accept="image/*"
+          class="variant-file-input-hidden"
+          @change="onFilePicked"
         />
         <img
           v-if="imageUrl"
@@ -306,6 +370,14 @@ const isEdit = () => props.variant != null
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+}
+.variant-file-input-hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 .variant-image-url-input {
   flex: 1;
