@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { NForm, NFormItem, NInput, NInputNumber, NButton, NSpace } from 'naive-ui'
+import { NInput, NInputNumber, NButton, NSpace } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import type { Variant, Parameter, Value } from '../types'
 

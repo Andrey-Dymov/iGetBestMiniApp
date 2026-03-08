@@ -139,19 +139,24 @@ export function parseCompactFormat(text: string): { ok: true; data: ParsedCompar
     .map((l) => l.trim())
     .filter(Boolean)
   if (lines.length < 3) return { ok: false, error: 'Минимум 3 строки: заголовок, параметры, вариант' }
-  if (!lines[0].startsWith('Сравнение: ')) return { ok: false, error: 'Первая строка должна начинаться с "Сравнение: "' }
-  if (!lines[1].startsWith('Параметры: ')) return { ok: false, error: 'Вторая строка должна начинаться с "Параметры: "' }
+  const line0 = lines[0]
+  const line1 = lines[1]
+  if (!line0?.startsWith('Сравнение: ')) return { ok: false, error: 'Первая строка должна начинаться с "Сравнение: "' }
+  if (!line1?.startsWith('Параметры: ')) return { ok: false, error: 'Вторая строка должна начинаться с "Параметры: "' }
 
-  const name = lines[0].slice('Сравнение: '.length).trim()
-  const paramsText = lines[1].slice('Параметры: '.length)
+  const name = line0.slice('Сравнение: '.length).trim()
+  const paramsText = line1.slice('Параметры: '.length)
 
   const parameters: ParsedComparison['parameters'] = []
   const paramParts = paramsText.split(', вес ')
   for (let i = 0; i + 1 < paramParts.length; i += 2) {
-    const paramWithCriteria = paramParts[i].trim()
-    const weightStr = paramParts[i + 1]
+    const p0 = paramParts[i]
+    const p1 = paramParts[i + 1]
+    if (p0 === undefined || p1 === undefined) continue
+    const paramWithCriteria = p0.trim()
+    const weightStr = p1
     const weightMatch = weightStr?.match(/^(\d+)/)
-    const weight = weightMatch ? parseInt(weightMatch[1], 10) : 5
+    const weight = weightMatch?.[1] ? parseInt(weightMatch[1], 10) : 5
 
     let paramName = paramWithCriteria
     let criteria: { name: string; score: number }[] = []
@@ -165,7 +170,7 @@ export function parseCompactFormat(text: string): { ok: true; data: ParsedCompar
         if (colon >= 0) {
           const cName = c.slice(0, colon).trim()
           const cScore = parseInt(c.slice(colon + 1).trim(), 10)
-          if (!isNaN(cScore)) criteria.push({ name: cName, score: cScore })
+          if (!isNaN(cScore) && cName) criteria.push({ name: cName as string, score: cScore })
         }
       }
     }
@@ -175,10 +180,12 @@ export function parseCompactFormat(text: string): { ok: true; data: ParsedCompar
 
   const variants: ParsedComparison['variants'] = []
   for (let i = 2; i < lines.length; i++) {
-    const colonIdx = lines[i].indexOf(': ')
+    const line = lines[i]
+    if (!line) continue
+    const colonIdx = line.indexOf(': ')
     if (colonIdx < 0) continue
-    const vName = lines[i].slice(0, colonIdx).trim()
-    const valsStr = lines[i].slice(colonIdx + 2).replace(/\.\s*$/, '')
+    const vName = line.slice(0, colonIdx).trim()
+    const valsStr = line.slice(colonIdx + 2).replace(/\.\s*$/, '')
     const values = valsStr ? valsStr.split(', ').map((s) => s.trim()) : []
     variants.push({ name: vName, values })
   }

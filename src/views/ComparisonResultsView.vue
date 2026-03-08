@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch, TransitionGroup } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useComparisonsStore } from '../stores/comparisons'
-import { NButton, NEmpty, NSpace, NModal, NInput, NForm, NFormItem, NIcon, NSlider } from 'naive-ui'
+import { NButton, NEmpty, NModal, NIcon, NSlider } from 'naive-ui'
 import { AddOutline } from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
 import { recalculateTotalScores, findScoreFromCriteria } from '../utils/importExport'
@@ -201,9 +201,6 @@ function onValueEditSave(data: { textValue?: string; numericValue?: number }) {
   const ed = valueEditData.value
   if (!c || !ed) return
   const p = ed.parameter
-  const displayVal = p.parameterType === 'number'
-    ? data.numericValue
-    : data.textValue
   const score =
     p.parameterType === 'number'
       ? findScoreFromCriteria(p.criteria ?? [], data.numericValue ?? 0, 'number')

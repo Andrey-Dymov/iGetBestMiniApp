@@ -22,11 +22,13 @@ export const LOCALES = [
 
 const LOCALE_CODES = LOCALES.map((l) => l.code)
 
+type LocaleCode = 'en' | 'ru' | 'zh'
+
 /** Определяет язык по умолчанию: сохранённый → системный → en */
-export function getDefaultLocale(): string {
+export function getDefaultLocale(): LocaleCode {
   if (typeof localStorage !== 'undefined') {
     const saved = localStorage.getItem('igetbest-locale')
-    if (saved && LOCALE_CODES.includes(saved)) return saved
+    if (saved && (LOCALE_CODES as readonly string[]).includes(saved)) return saved as LocaleCode
   }
   const sys = typeof navigator !== 'undefined' && (navigator.language || (navigator as { userLanguage?: string }).userLanguage || '')
   const sysLang = sys ? sys.toLowerCase().slice(0, 2) : ''

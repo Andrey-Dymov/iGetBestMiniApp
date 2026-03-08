@@ -36,6 +36,8 @@ npm run build
 npm run deploy   # build + push в gh-pages
 ```
 
+Подробная инструкция по запуску в реальном Telegram: **[TELEGRAM_SETUP.md](TELEGRAM_SETUP.md)**
+
 ## Структура
 
 - `src/views/` — страницы (ComparisonList, ComparisonResults)
