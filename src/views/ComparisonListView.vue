@@ -313,6 +313,9 @@ function addSingleSample(name: string) {
           </template>
           <template #description>
             <div v-if="c.variants.length || c.parameters.length" class="meta">
+              <div v-if="c.parameters.length" class="meta-line">
+                {{ parameterNames(c) }}
+              </div>
               <div v-if="c.variants.length" class="meta-line variants-names">
                 <span v-for="(v, i) in sortedVariants(c)" :key="v.id" class="variant-block">
                   <span class="variant-rank">{{ i + 1 }}</span>
@@ -330,9 +333,6 @@ function addSingleSample(name: string) {
                     @error="($event.target as HTMLImageElement)?.style?.setProperty('display', 'none')"
                   />
                 </template>
-              </div>
-              <div v-if="c.parameters.length" class="meta-line">
-                {{ parameterNames(c) }}
               </div>
             </div>
           </template>
