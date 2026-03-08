@@ -265,18 +265,29 @@ function applyTemplateFrom(template: CriteriaTemplate) {
 }
 
 function addCriterion() {
-  const last = criteria.value[criteria.value.length - 1]
-  const nextScore = last ? Math.min(10, last.score + 1) : 0
-  const nextVal = paramType.value === 'number' ? (last?.numericValue ?? 0) + 1 : `Критерий ${criteria.value.length + 1}`
+  const newId = id()
+  const existing = criteria.value
+  const minNum = existing.length
+    ? Math.min(...existing.map((c) => c.numericValue ?? 0))
+    : 0
+  const nextVal =
+    paramType.value === 'number'
+      ? minNum - 1
+      : `Критерий ${criteria.value.length + 1}`
   criteria.value.push({
-    id: id(),
-    name: paramType.value === 'number' ? String(nextVal) : String(nextVal),
+    id: newId,
+    name: String(nextVal),
     textValue: String(nextVal),
     numericValue: paramType.value === 'number' ? Number(nextVal) : undefined,
-    score: nextScore,
+    score: 0,
   })
   sortCriteriaByType()
   syncDisplayedCriteria()
+  nextTick(() => {
+    const row = document.querySelector(`[data-criterion-id="${newId}"]`)
+    const input = row?.querySelector('input, textarea') as HTMLInputElement | null
+    input?.focus()
+  })
 }
 
 function updateCriterion(cr: Criterion, updates: Partial<Criterion>) {
@@ -564,7 +575,7 @@ function formatNumber(v: number | null): string {
     </div>
     <div v-else>
       <TransitionGroup name="criterion-move" tag="div" class="param-criteria-list">
-        <div v-for="cr in displayedCriteria" :key="cr.id" class="param-criterion-row">
+        <div v-for="cr in displayedCriteria" :key="cr.id" class="param-criterion-row" :data-criterion-id="cr.id">
           <NInput
             v-if="paramType === 'text'"
             :value="cr.name || cr.textValue"

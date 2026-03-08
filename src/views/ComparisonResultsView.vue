@@ -568,15 +568,9 @@ function onParamFormDelete() {
 
 .table-actions {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   gap: 6px;
   justify-content: flex-start;
-}
-
-@media (max-width: 640px) {
-  .table-actions {
-    flex-direction: column;
-  }
 }
 
 .variant-col {

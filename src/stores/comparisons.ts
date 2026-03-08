@@ -138,7 +138,11 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     const c = getComparison(comparisonId)
     const p = c?.parameters.find((x) => x.id === parameterId)
     if (!p) return
-    Object.assign(p, updates)
+    const { criteria: criteriaUpd, ...rest } = updates
+    if (criteriaUpd !== undefined) {
+      p.criteria = criteriaUpd.map((cr) => ({ ...cr, id: cr.id || generateId() }))
+    }
+    Object.assign(p, rest)
     c!.modifiedDate = new Date().toISOString()
     save()
   }

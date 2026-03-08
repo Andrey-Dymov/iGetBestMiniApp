@@ -151,7 +151,7 @@ const criteria = () => getSortedCriteria()
 }
 .value-edit-input-number {
   width: 100%;
-  max-width: 120px;
+  max-width: 220px;
   margin: 0 auto;
   display: block;
 }
