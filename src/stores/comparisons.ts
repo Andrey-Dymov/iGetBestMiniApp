@@ -112,7 +112,7 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     return p
   }
 
-  function updateVariant(comparisonId: string, variantId: string, updates: Partial<Pick<Variant, 'name'>>) {
+  function updateVariant(comparisonId: string, variantId: string, updates: Partial<Pick<Variant, 'name' | 'imageUrl'>>) {
     const c = getComparison(comparisonId)
     const v = c?.variants.find((x) => x.id === variantId)
     if (!v) return
@@ -312,7 +312,7 @@ export const useComparisonsStore = defineStore('comparisons', () => {
         totalScore: ov.totalScore,
         position: ov.position,
         url: ov.url,
-        imageUrls: ov.imageUrls ? [...ov.imageUrls] : undefined,
+        imageUrl: ov.imageUrl,
       }
       c.variants.push(nv)
       vIdMap.set(ov.id, nv.id)

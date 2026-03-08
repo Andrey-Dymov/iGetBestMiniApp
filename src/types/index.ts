@@ -20,7 +20,7 @@ export interface Variant {
   totalScore: number
   position: number
   url?: string
-  imageUrls?: string[]
+  imageUrl?: string
 }
 
 export interface Parameter {

@@ -17,7 +17,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  save: [data: { name: string; parameterValues: Record<string, VariantValue> }]
+  save: [data: { name: string; parameterValues: Record<string, VariantValue>; imageUrl?: string }]
   cancel: []
   delete: []
 }>()
@@ -26,12 +26,14 @@ const { t } = useI18n()
 
 const name = ref('')
 const parameterValues = ref<Record<string, VariantValue>>({})
+const imageUrl = ref('')
 
 watch(
   () => props.variant,
   (v) => {
     if (v) {
       name.value = v.name
+      imageUrl.value = v.imageUrl ?? ''
       const vals: Record<string, VariantValue> = {}
       for (const p of props.comparison.parameters) {
         const val = props.getValue(v.id, p.id)
@@ -40,6 +42,7 @@ watch(
       parameterValues.value = vals
     } else {
       name.value = ''
+      imageUrl.value = ''
       const vals: Record<string, VariantValue> = {}
       for (const p of props.comparison.parameters) {
         vals[p.id] = {}
@@ -94,7 +97,11 @@ function formatNumber(v: number | null): string {
 }
 
 function save() {
-  emit('save', { name: name.value.trim(), parameterValues: { ...parameterValues.value } })
+  emit('save', {
+    name: name.value.trim(),
+    parameterValues: { ...parameterValues.value },
+    imageUrl: imageUrl.value.trim() || undefined,
+  })
 }
 
 function cancel() {
@@ -118,6 +125,26 @@ const isEdit = () => props.variant != null
         @keyup.enter="save"
       />
     </NFormItem>
+
+    <div class="variant-form-block">
+      <h4 class="variant-form-section-title">{{ t('variantForm.images') }}</h4>
+      <div class="variant-image-row">
+        <NInput
+          v-model:value="imageUrl"
+          :placeholder="t('variantForm.imageUrlPlaceholder')"
+          size="small"
+          class="variant-image-url-input"
+          @keyup.enter="save"
+        />
+        <img
+          v-if="imageUrl"
+          :src="imageUrl"
+          :alt="t('variantForm.images')"
+          class="variant-image-thumb"
+          @error="($event.target as HTMLImageElement)?.style?.setProperty('display', 'none')"
+        />
+      </div>
+    </div>
 
     <template v-if="comparison.parameters.length > 0">
       <div class="variant-form-block">
@@ -273,5 +300,23 @@ const isEdit = () => props.variant != null
 .variant-form-actions {
   margin-top: 20px;
   width: 100%;
+}
+
+.variant-image-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.variant-image-url-input {
+  flex: 1;
+  min-width: 0;
+}
+.variant-image-thumb {
+  height: 40px;
+  width: auto;
+  max-width: 80px;
+  object-fit: contain;
+  border-radius: 6px;
+  flex-shrink: 0;
 }
 </style>

@@ -117,11 +117,11 @@ function openEditVariant(v: Variant) {
   showVariantModal.value = true
 }
 
-function onVariantFormSave(data: { name: string; parameterValues: Record<string, VariantValue> }) {
+function onVariantFormSave(data: { name: string; parameterValues: Record<string, VariantValue>; imageUrl?: string }) {
   const c = comparison.value
   if (!c || !data.name.trim()) return
   if (editingVariant.value) {
-    store.updateVariant(c.id, editingVariant.value.id, { name: data.name.trim() })
+    store.updateVariant(c.id, editingVariant.value.id, { name: data.name.trim(), imageUrl: data.imageUrl })
     for (const p of c.parameters) {
       const pv = data.parameterValues[p.id]
       if (!pv) continue
@@ -135,6 +135,9 @@ function onVariantFormSave(data: { name: string; parameterValues: Record<string,
     }
   } else {
     const v = store.addVariant(c.id, data.name.trim())
+    if (data.imageUrl) {
+      store.updateVariant(c.id, v.id, { imageUrl: data.imageUrl })
+    }
     for (const p of c.parameters) {
       const pv = data.parameterValues[p.id]
       if (!pv) continue
@@ -384,6 +387,13 @@ function onParamFormDelete() {
                       <span class="variant-rank">{{ i + 1 }}</span>
                       <span class="variant-score">{{ Math.round(v.totalScore) }}</span>
                     </div>
+                    <img
+                      v-if="v.imageUrl"
+                      :src="v.imageUrl"
+                      :alt="v.name"
+                      class="variant-header-thumb"
+                      @error="($event.target as HTMLImageElement)?.style?.setProperty('display', 'none')"
+                    />
                   </div>
                 </th>
               </TransitionGroup>
@@ -581,6 +591,17 @@ function onParamFormDelete() {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  align-items: center;
+}
+
+.variant-header-thumb {
+  height: 36px;
+  width: auto;
+  max-width: 56px;
+  object-fit: contain;
+  border-radius: 6px;
+  flex-shrink: 0;
+  margin-top: 4px;
 }
 
 .variant-name {

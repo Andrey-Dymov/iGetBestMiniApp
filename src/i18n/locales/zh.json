@@ -97,5 +97,9 @@
     "criteriaEmptyWhy": "标准定义评分尺度：每个值（数字或文本）对应 0 到 10 的分数。这些分数用于计算每个选项的总分。",
     "criteriaEmptyExamples": "示例：「0 → 0, 10 → 10」表示 0–10 分制；「否 → 0, 是 → 10」；「实惠 → 10, 中 → 7, 贵 → 3」表示价格。",
     "valueNumber": "数字"
+  },
+  "variantForm": {
+    "images": "图片",
+    "imageUrlPlaceholder": "粘贴图片链接"
   }
 }

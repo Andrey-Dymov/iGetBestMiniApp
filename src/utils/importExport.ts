@@ -84,6 +84,7 @@ export function exportToJSON(c: Comparison): string {
         name: v.name,
         description: v.description ?? '',
         url: v.url ?? '',
+        imageUrl: v.imageUrl ?? '',
         values: valuesDict,
       }
     }),
@@ -343,7 +344,8 @@ export function importFromJSON(jsonStr: string): Comparison | null {
       }
       if (dv.description) v.description = String(dv.description)
       if (dv.url) v.url = String(dv.url)
-      if (Array.isArray(dv.imageUrls)) v.imageUrls = dv.imageUrls.map(String)
+      if (dv.imageUrl) v.imageUrl = String(dv.imageUrl)
+      else if (Array.isArray(dv.imageUrls) && dv.imageUrls.length) v.imageUrl = String(dv.imageUrls[0])
       c.variants.push(v)
       vByNum.set(v.number, v)
     })

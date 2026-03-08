@@ -104,7 +104,7 @@ function formatDate(iso: string) {
   return d.toLocaleDateString(dateLocale.value, { day: 'numeric', month: 'short', year: '2-digit' })
 }
 
-function sortedVariants(c: { variants: { id: string; name: string; totalScore: number; imageUrls?: string[] }[] }) {
+function sortedVariants(c: { variants: { id: string; name: string; totalScore: number; imageUrl?: string }[] }) {
   return [...c.variants].sort((a, b) => b.totalScore - a.totalScore)
 }
 
@@ -116,7 +116,7 @@ function parameterNames(c: { parameters: { name: string; weight: number }[] }) {
 }
 
 function hasAnyImages(c: Comparison): boolean {
-  return c.variants.some((v) => v.imageUrls?.length)
+  return c.variants.some((v) => v.imageUrl)
 }
 
 function renderIcon(icon: unknown) {
@@ -323,8 +323,8 @@ function addSingleSample(name: string) {
               <div v-if="hasAnyImages(c)" class="meta-line variant-images-row">
                 <template v-for="v in sortedVariants(c)" :key="v.id">
                   <img
-                    v-if="v.imageUrls?.length"
-                    :src="v.imageUrls?.[0]"
+                    v-if="v.imageUrl"
+                    :src="v.imageUrl"
                     :alt="v.name"
                     class="variant-thumb"
                     @error="($event.target as HTMLImageElement)?.style?.setProperty('display', 'none')"
@@ -532,9 +532,10 @@ function addSingleSample(name: string) {
 }
 
 .variant-thumb {
-  width: 40px;
   height: 40px;
-  object-fit: cover;
+  width: auto;
+  max-width: 80px;
+  object-fit: contain;
   border-radius: 6px;
   flex-shrink: 0;
 }
