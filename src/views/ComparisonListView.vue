@@ -24,6 +24,7 @@ import {
   ShareSocialOutline,
   TrashOutline,
   AddCircleOutline,
+  AddOutline,
 } from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
 import { useMessage } from 'naive-ui'
@@ -164,6 +165,11 @@ function handleAddMenuSelect(key: string) {
   else if (key.startsWith('sample:')) addSingleSample(key.slice(7))
 }
 
+const emptyExamplesOptions = computed<DropdownOption[]>(() => {
+  const addSamplesOpt = addMenuOptions.value.find((o) => o.key === 'addSamples')
+  return (addSamplesOpt && 'children' in addSamplesOpt ? addSamplesOpt.children : []) ?? []
+})
+
 function handleMenuSelect(key: string, c: Comparison) {
   if (key === 'duplicate') {
     const created = store.duplicateComparison(c.id)
@@ -279,11 +285,14 @@ function addSingleSample(name: string) {
             </template>
           </NButton>
         </NDropdown>
-        <NButton type="primary" @click="openAdd">{{ t('comparisons.add') }}</NButton>
+        <button type="button" class="btn-add" @click="openAdd">
+          <NIcon><AddOutline /></NIcon>
+          {{ t('comparisons.add') }}
+        </button>
       </div>
     </div>
 
-    <NList v-if="store.sortedComparisons.length" :bordered="false" hoverable>
+    <NList v-if="store.sortedComparisons.length" :bordered="false" hoverable class="list-content">
       <NListItem
         v-for="c in store.sortedComparisons"
         :key="c.id"
@@ -340,7 +349,49 @@ function addSingleSample(name: string) {
       </NListItem>
     </NList>
 
-    <NEmpty v-else :description="t('comparisons.empty')" class="empty" />
+    <div v-else class="list-empty-wrap">
+      <div class="list-empty-card">
+        <div class="list-empty-icon">📊</div>
+        <h2 class="list-empty-title">{{ t('comparisons.empty') }}</h2>
+        <p class="list-empty-description">{{ t('list.emptyDescription') }}</p>
+        <p class="list-empty-invite">{{ t('list.emptyInvite') }}</p>
+        <div class="list-empty-actions">
+          <div class="list-empty-section">
+            <span class="list-empty-label">{{ t('list.emptyCreate') }}</span>
+            <button type="button" class="list-empty-btn list-empty-btn-primary" @click="openAdd">
+              {{ t('comparisons.add') }}
+            </button>
+          </div>
+          <div class="list-empty-section">
+            <span class="list-empty-label">{{ t('list.emptyImport') }}</span>
+            <button type="button" class="list-empty-btn list-empty-btn-outline" @click="importFromClipboardJson">
+              {{ t('list.importJson') }}
+            </button>
+            <button type="button" class="list-empty-btn list-empty-btn-outline" @click="showImportCompactModal = true">
+              {{ t('list.importCompact') }}
+            </button>
+          </div>
+          <div class="list-empty-section">
+            <span class="list-empty-label">{{ t('list.emptyExamples') }}</span>
+            <button type="button" class="list-empty-btn list-empty-btn-outline" @click="addSamples">
+              {{ t('comparisons.addAllSamples') }}
+            </button>
+            <NDropdown
+              :options="emptyExamplesOptions"
+              trigger="click"
+              placement="bottom-start"
+              @select="handleAddMenuSelect"
+            >
+              <button type="button" class="list-empty-btn list-empty-btn-outline">
+                {{ t('comparisons.addSamples') }} ›
+              </button>
+            </NDropdown>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="list-disclaimer">{{ t('list.disclaimer') }}</p>
 
     <NModal :show="showAddModal" @update:show="showAddModal = $event" @mask-click="closeAdd">
       <div class="modal-content">
@@ -389,6 +440,8 @@ function addSingleSample(name: string) {
 .list {
   padding: 24px;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
@@ -413,6 +466,32 @@ function addSingleSample(name: string) {
 .header-right {
   justify-content: flex-end;
   gap: 8px;
+}
+
+.btn-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1.5px solid rgba(0,0,0,0.12);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--tg-theme-text-color, #1a1a1a);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-add:hover {
+  background: rgba(0,0,0,0.06);
+  border-color: rgba(0,0,0,0.2);
+}
+
+.btn-add .n-icon {
+  font-size: 14px;
 }
 
 .list-title {
@@ -512,8 +591,119 @@ function addSingleSample(name: string) {
   font-weight: 600;
 }
 
-.empty {
-  margin-top: 48px;
+.list-disclaimer {
+  margin: 24px 0 0 0;
+  padding: 12px 0;
+  font-size: 0.75rem;
+  color: var(--tg-theme-hint-color, #888);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.list-empty-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.list-empty-card {
+  --card-bg: #FFFFFF;
+  --text: var(--tg-theme-text-color, #1a1a1a);
+  --text-muted: #8a8580;
+  --divider: rgba(0,0,0,0.06);
+  background: var(--card-bg);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(80,60,40,0.18), 0 2px 6px rgba(80,60,40,0.08);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.list-empty-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.list-empty-title {
+  margin: 0 0 12px 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.list-empty-description {
+  margin: 0 0 12px 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  width: 100%;
+  text-align: left;
+}
+
+.list-empty-invite {
+  margin: 0 0 24px 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+  width: 100%;
+}
+
+.list-empty-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.list-empty-section {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.list-empty-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  align-self: flex-start;
+}
+
+.list-empty-btn {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 24px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.list-empty-btn-primary {
+  background: #2d9d5c;
+  color: #fff;
+}
+
+.list-empty-btn-primary:hover {
+  background: #259b50;
+  box-shadow: 0 4px 14px rgba(45,157,92,0.35);
+}
+
+.list-empty-btn-outline {
+  background: transparent;
+  color: var(--text);
+  border: 1.5px solid rgba(0,0,0,0.12);
+}
+
+.list-empty-btn-outline:hover {
+  background: rgba(0,0,0,0.06);
+  border-color: rgba(0,0,0,0.2);
 }
 
 .modal-content {

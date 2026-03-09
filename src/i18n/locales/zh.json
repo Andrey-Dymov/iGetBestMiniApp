@@ -1,6 +1,11 @@
 {
   "list": {
     "title": "比较",
+    "emptyDescription": "iGetBest 帮助您做出明智决定。创建比较，添加选项（您要比较的对象）和参数（重要性 1–10 的标准）。应用构建矩阵，计算加权分数并排序选项。适用于选择商品、服务、度假地、员工等。数据存储在 Telegram 云端。支持 JSON 和简短格式的导入/导出。",
+    "emptyInvite": "创建新比较、从剪贴板导入或选择现成示例。",
+    "emptyCreate": "创建比较",
+    "emptyImport": "导入",
+    "emptyExamples": "示例",
     "more": "更多",
     "duplicate": "复制",
     "exportJson": "导出到剪贴板 (JSON)",
@@ -14,7 +19,8 @@
     "exportSuccess": "比较 «{name}» 已导出到剪贴板",
     "clipboardEmpty": "剪贴板为空",
     "compactPlaceholder": "粘贴简短格式文本...",
-    "compactExample": "示例:\n比较: 选择摩托车\n参数: 价格 (1200000:7-1600000:4), 权重 8\n川崎: 1600000, 舒适."
+    "compactExample": "示例:\n比较: 选择摩托车\n参数: 价格 (1200000:7-1600000:4), 权重 8\n川崎: 1600000, 舒适.",
+    "disclaimer": "数据存储在 Telegram 云端，与您的账号关联。不会与任何人共享。"
   },
   "welcome": {
     "title": "iGetBest",

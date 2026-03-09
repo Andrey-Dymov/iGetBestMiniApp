@@ -1,6 +1,11 @@
 {
   "list": {
     "title": "Comparisons",
+    "emptyDescription": "iGetBest helps you make informed decisions. Create a comparison, add options (what you compare) and parameters (criteria with importance 1–10). The app builds a matrix, calculates weighted scores and ranks options. Suitable for choosing products, services, vacation spots, employees and more. Data is stored in Telegram Cloud. Supports import/export in JSON and compact format.",
+    "emptyInvite": "Create a new comparison, import from clipboard, or choose a ready-made example.",
+    "emptyCreate": "Create comparison",
+    "emptyImport": "Import",
+    "emptyExamples": "Examples",
     "more": "More",
     "duplicate": "Duplicate",
     "exportJson": "Export to clipboard (JSON)",
@@ -14,7 +19,8 @@
     "exportSuccess": "Comparison «{name}» exported to clipboard",
     "clipboardEmpty": "Clipboard is empty",
     "compactPlaceholder": "Paste text in compact format...",
-    "compactExample": "Example:\nComparison: Motorcycle choice\nParameters: Price (1200000:7-1600000:4), weight 8\nKawasaki: 1600000, Comfortable."
+    "compactExample": "Example:\nComparison: Motorcycle choice\nParameters: Price (1200000:7-1600000:4), weight 8\nKawasaki: 1600000, Comfortable.",
+    "disclaimer": "Data is stored in Telegram cloud, linked to your account. Not shared with anyone."
   },
   "welcome": {
     "title": "iGetBest",

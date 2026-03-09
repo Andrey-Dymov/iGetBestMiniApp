@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch, TransitionGroup } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useComparisonsStore, VARIANT_PALETTE } from '../stores/comparisons'
-import { NButton, NEmpty, NModal, NIcon, NSlider } from 'naive-ui'
+import { NEmpty, NModal, NIcon, NSlider } from 'naive-ui'
 import { AddOutline } from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
 import { recalculateTotalScores, findScoreFromCriteria } from '../utils/importExport'
@@ -321,11 +321,12 @@ function onParamFormDelete() {
 <template>
   <div class="results">
     <header class="results-header">
-      <NButton quaternary size="small" @click="goBack">← {{ t('common.back') }}</NButton>
+      <button type="button" class="btn-back" @click="goBack">← {{ t('common.back') }}</button>
       <h1 class="results-title">{{ comparison?.name ?? '' }}</h1>
     </header>
 
     <template v-if="comparison">
+      <div class="results-card">
       <div v-if="!hasTableData()" class="empty-state">
         <div class="empty-icon">📊</div>
         <h2 class="empty-title">{{ t('results.empty') }}</h2>
@@ -345,9 +346,9 @@ function onParamFormDelete() {
               <span class="empty-card-name">{{ v.name }}</span>
               <span class="empty-card-chevron">›</span>
             </button>
-            <NButton type="primary" block size="large" @click="openAddVariant" class="empty-btn">
+            <button type="button" class="empty-btn empty-btn-primary" @click="openAddVariant">
               {{ t('results.addVariantBtn') }}
-            </NButton>
+            </button>
             <p class="empty-desc">{{ t('results.emptyVariants') }}</p>
           </div>
           <!-- Параметры: карточки добавленных + кнопка добавления -->
@@ -365,9 +366,9 @@ function onParamFormDelete() {
               <span class="empty-card-badge empty-card-weight">{{ p.weight }}</span>
               <span class="empty-card-chevron">›</span>
             </button>
-            <NButton type="success" block size="large" @click="openAddParam" class="empty-btn">
+            <button type="button" class="empty-btn empty-btn-success" @click="openAddParam">
               {{ t('results.addParamBtn') }}
-            </NButton>
+            </button>
             <p class="empty-desc">{{ t('results.emptyParams') }}</p>
           </div>
         </div>
@@ -380,18 +381,14 @@ function onParamFormDelete() {
               <TransitionGroup name="variant-move" tag="tr">
                 <th key="param-col" class="param-col">
                   <div v-if="hasTableData()" class="table-actions">
-                    <NButton size="small" @click="openAddParam">
-                      <template #icon>
-                        <NIcon><AddOutline /></NIcon>
-                      </template>
+                    <button type="button" class="table-action-btn" @click="openAddParam">
+                      <NIcon><AddOutline /></NIcon>
                       {{ t('results.addParam') }}
-                    </NButton>
-                    <NButton size="small" @click="openAddVariant">
-                      <template #icon>
-                        <NIcon><AddOutline /></NIcon>
-                      </template>
+                    </button>
+                    <button type="button" class="table-action-btn" @click="openAddVariant">
+                      <NIcon><AddOutline /></NIcon>
                       {{ t('results.addVariant') }}
-                    </NButton>
+                    </button>
                   </div>
                 </th>
                 <th v-for="(v, i) in displayedVariants" :key="v.id" class="variant-col variant-col-clickable" @click="openEditVariant(v)">
@@ -399,24 +396,22 @@ function onParamFormDelete() {
                     <div class="variant-name-wrap">
                       <span class="variant-name">{{ v.name }}</span>
                     </div>
-                    <div class="variant-footer">
-                      <div class="variant-score-row">
-                        <span class="variant-rank">{{ i + 1 }}</span>
-                        <span class="variant-score">{{ Math.round(v.totalScore) }}</span>
-                      </div>
-                      <img
-                        v-if="v.imageUrl"
-                        :src="v.imageUrl"
-                        :alt="v.name"
-                        class="variant-header-thumb"
-                        @error="($event.target as HTMLImageElement)?.style?.setProperty('display', 'none')"
-                      />
-                      <div
-                        v-else
-                        class="variant-thumb-placeholder"
-                        :style="v.color ? { background: v.color } : {}"
-                      ></div>
+                    <div class="variant-score-row">
+                      <span class="variant-rank">{{ i + 1 }}</span>
+                      <span class="variant-score">{{ Math.round(v.totalScore) }}</span>
                     </div>
+                    <img
+                      v-if="v.imageUrl"
+                      :src="v.imageUrl"
+                      :alt="v.name"
+                      class="variant-header-thumb"
+                      @error="($event.target as HTMLImageElement)?.style?.setProperty('display', 'none')"
+                    />
+                    <div
+                      v-else
+                      class="variant-thumb-placeholder"
+                      :style="v.color ? { background: v.color } : {}"
+                    ></div>
                   </div>
                 </th>
               </TransitionGroup>
@@ -426,8 +421,7 @@ function onParamFormDelete() {
                 <td class="param-col" @click="openEditParam(p)">
                   <div class="param-header">
                     <div class="param-head-row">
-                      <span class="param-name param-name-upper">{{ p.name }}</span>
-                      <span v-if="p.unit" class="param-unit">{{ p.unit }}</span>
+                      <span class="param-name">{{ p.name }}<span v-if="p.unit" class="param-unit">, {{ p.unit }}</span></span>
                     </div>
                     <div class="param-weight-row" @click.stop>
                       <NSlider
@@ -478,6 +472,7 @@ function onParamFormDelete() {
           </table>
         </div>
       </div>
+      </div>
     </template>
 
     <NEmpty v-else :description="t('results.notFound')" class="empty" />
@@ -514,8 +509,7 @@ function onParamFormDelete() {
     </NModal>
 
     <NModal :show="showValueEditModal" @update:show="onValueEditModalShow">
-      <div class="modal-content modal-content-scroll">
-        <h3>{{ valueEditData?.variant?.name ?? '' }}</h3>
+      <div class="modal-content modal-content-scroll modal-content-variant">
         <ValueEditForm
           v-if="valueEditData && comparison"
           :variant="valueEditData.variant"
@@ -535,6 +529,20 @@ function onParamFormDelete() {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  --card-bg: #FFFFFF;
+  --card-radius: 20px;
+  --text: var(--tg-theme-text-color, #1a1a1a);
+  --text-muted: #8a8580;
+  --divider: rgba(0,0,0,0.06);
+}
+
+.results-card {
+  flex: 1;
+  min-height: 0;
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  box-shadow: 0 20px 60px rgba(80,60,40,0.18), 0 2px 6px rgba(80,60,40,0.08);
+  overflow: hidden;
 }
 
 .results-header {
@@ -545,11 +553,29 @@ function onParamFormDelete() {
   flex-shrink: 0;
 }
 
+.btn-back {
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-back:hover {
+  background: rgba(0,0,0,0.06);
+}
+
 .results-title {
   flex: 1;
   margin: 0;
   font-size: 1.25rem;
   font-weight: 700;
+  color: var(--text);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -573,13 +599,15 @@ function onParamFormDelete() {
   min-width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
+  background: var(--card-bg);
 }
 
 .results-table th,
 .results-table td {
   padding: 10px 12px;
-  border-bottom: 1px solid #999 !important;
+  border-bottom: 1px solid var(--divider) !important;
   vertical-align: middle;
+  background: var(--card-bg);
 }
 
 .param-tbody {
@@ -601,7 +629,7 @@ function onParamFormDelete() {
 .param-col {
   position: sticky;
   left: 0;
-  background: var(--tg-theme-bg-color, #fff);
+  background: var(--card-bg);
   min-width: 120px;
   max-width: 160px;
 }
@@ -609,6 +637,7 @@ function onParamFormDelete() {
 .table-actions {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 6px;
   justify-content: flex-start;
 }
@@ -625,40 +654,32 @@ function onParamFormDelete() {
 }
 
 .variant-header {
-  display: flex;
-  flex-direction: column;
-  min-height: 88px;
-  justify-content: space-between;
+  display: grid;
+  grid-template-rows: 2.4em 1.6em 32px;
   align-items: center;
-  gap: 4px;
+  justify-items: center;
+  gap: 0;
 }
 
 .variant-name-wrap {
-  flex: 1;
-  min-height: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   width: 100%;
+  min-height: 0;
+  align-self: start;
 }
 
 .variant-name {
   font-weight: 600;
   font-size: 0.85em;
+  color: var(--text);
   line-height: 1.2;
   word-wrap: break-word;
   overflow-wrap: break-word;
   word-break: break-word;
   text-align: center;
   max-width: 100%;
-}
-
-.variant-footer {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
 }
 
 .variant-header-thumb {
@@ -691,8 +712,8 @@ function onParamFormDelete() {
   width: 1.35em;
   height: 1.35em;
   flex-shrink: 0;
-  color: var(--tg-theme-hint-color, #666);
-  background: #e0e0e0;
+  color: var(--text-muted);
+  background: rgba(0,0,0,0.08);
   border-radius: 50%;
   font-size: 0.8em;
   font-weight: 600;
@@ -700,7 +721,7 @@ function onParamFormDelete() {
 
 .variant-score {
   font-size: 0.85em;
-  color: var(--tg-theme-hint-color, #999);
+  color: var(--text-muted);
 }
 
 .param-header {
@@ -723,20 +744,14 @@ function onParamFormDelete() {
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1;
-}
-
-.param-name-upper {
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  color: var(--tg-theme-hint-color, #666);
+  font-size: 0.9rem;
+  color: var(--text);
 }
 
 .param-unit {
-  font-size: 0.65rem;
-  color: var(--tg-theme-hint-color, #999);
-  text-transform: none;
-  font-weight: 500;
-  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--text-muted);
 }
 
 .param-weight-row {
@@ -763,10 +778,10 @@ function onParamFormDelete() {
 .param-weight-badge {
   font-size: 0.7rem;
   font-weight: 700;
-  color: var(--tg-theme-text-color, #333);
-  background: rgba(128, 128, 128, 0.2);
+  color: var(--text);
+  background: rgba(0,0,0,0.08);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: 6px;
   min-width: 22px;
   min-height: 22px;
   display: inline-flex;
@@ -780,46 +795,41 @@ function onParamFormDelete() {
 .param-weight-buttons {
   display: none;
   flex-shrink: 0;
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid rgba(128, 128, 128, 0.4);
-  background: rgba(128, 128, 128, 0.08);
-  height: 22px;
-  box-sizing: border-box;
+  gap: 4px;
 }
 
 .param-weight-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 100%;
-  box-sizing: border-box;
   padding: 0;
   border: none;
-  background: transparent;
-  color: var(--tg-theme-text-color, #333);
-  font-size: 1.1rem;
+  background: rgba(0,0,0,0.06);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 18px;
   font-weight: 300;
+  font-family: inherit;
   line-height: 1;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-}
-
-.param-weight-btn:not(:last-child) {
-  border-right: 1px solid rgba(128, 128, 128, 0.3);
+  transition: all 0.15s ease;
 }
 
 .param-weight-btn:hover:not(:disabled) {
-  background: rgba(128, 128, 128, 0.15);
+  background: rgba(0,0,0,0.12);
 }
 
 .param-weight-btn:active:not(:disabled) {
-  background: rgba(128, 128, 128, 0.25);
+  background: rgba(0,0,0,0.18);
+  transform: scale(0.92);
 }
 
 .param-weight-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
@@ -852,6 +862,7 @@ function onParamFormDelete() {
   min-height: 0;
   line-height: 1.2;
   font-weight: 600;
+  color: var(--text);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -861,24 +872,25 @@ function onParamFormDelete() {
 
 .cell-score-badge {
   font-size: 0.49rem;
-  font-weight: 600;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   line-height: 1.2;
   color: #333;
-  padding: 1px 6px;
-  border-radius: 4px;
+  padding: 2px 6px;
+  border-radius: 6px;
 }
 
-.cell-score-badge.score-0 { background: rgba(204, 0, 0, 0.35); }
-.cell-score-badge.score-1 { background: rgba(230, 77, 0, 0.35); }
-.cell-score-badge.score-2 { background: rgba(255, 127, 0, 0.35); }
-.cell-score-badge.score-3 { background: rgba(255, 153, 0, 0.35); }
-.cell-score-badge.score-4 { background: rgba(230, 179, 0, 0.35); }
-.cell-score-badge.score-5 { background: rgba(204, 179, 0, 0.35); }
-.cell-score-badge.score-6 { background: rgba(153, 166, 0, 0.35); }
-.cell-score-badge.score-7 { background: rgba(102, 166, 0, 0.35); }
-.cell-score-badge.score-8 { background: rgba(51, 166, 0, 0.35); }
-.cell-score-badge.score-9 { background: rgba(26, 140, 0, 0.35); }
-.cell-score-badge.score-10 { background: rgba(0, 102, 0, 0.35); }
+.cell-score-badge.score-0 { background: rgba(204, 0, 0, 0.2); }
+.cell-score-badge.score-1 { background: rgba(230, 77, 0, 0.2); }
+.cell-score-badge.score-2 { background: rgba(255, 127, 0, 0.2); }
+.cell-score-badge.score-3 { background: rgba(255, 153, 0, 0.2); }
+.cell-score-badge.score-4 { background: rgba(230, 179, 0, 0.2); }
+.cell-score-badge.score-5 { background: rgba(204, 179, 0, 0.2); }
+.cell-score-badge.score-6 { background: rgba(153, 166, 0, 0.2); }
+.cell-score-badge.score-7 { background: rgba(102, 166, 0, 0.2); }
+.cell-score-badge.score-8 { background: rgba(51, 166, 0, 0.2); }
+.cell-score-badge.score-9 { background: rgba(26, 140, 0, 0.2); }
+.cell-score-badge.score-10 { background: rgba(0, 102, 0, 0.2); }
 
 .modal-content {
   padding: 24px;
@@ -905,7 +917,7 @@ function onParamFormDelete() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 32px 24px;
+  padding: 24px 20px;
   text-align: center;
 }
 
@@ -919,11 +931,12 @@ function onParamFormDelete() {
   margin: 0 0 8px 0;
   font-size: 1.25rem;
   font-weight: 700;
+  color: var(--text);
 }
 
 .empty-hint {
   margin: 0 0 12px 0;
-  color: var(--tg-theme-hint-color, #999);
+  color: var(--text-muted);
   font-size: 0.95rem;
   font-weight: 600;
   width: 100%;
@@ -931,7 +944,7 @@ function onParamFormDelete() {
 
 .empty-general {
   margin: 0 0 24px 0;
-  color: var(--tg-theme-hint-color, #888);
+  color: var(--text-muted);
   font-size: 0.9rem;
   width: 100%;
 }
@@ -951,8 +964,62 @@ function onParamFormDelete() {
 }
 
 .empty-btn {
-  min-height: 56px;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 24px;
+  font-family: inherit;
   font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.empty-btn-primary {
+  background: #3478f6;
+  color: #fff;
+}
+
+.empty-btn-primary:hover {
+  background: #2d6ad9;
+  box-shadow: 0 4px 14px rgba(52,120,246,0.35);
+}
+
+.empty-btn-success {
+  background: #2d9d5c;
+  color: #fff;
+}
+
+.empty-btn-success:hover {
+  background: #259b50;
+  box-shadow: 0 4px 14px rgba(45,157,92,0.35);
+}
+
+.table-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1.5px solid rgba(0,0,0,0.12);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.table-action-btn:hover {
+  background: rgba(0,0,0,0.06);
+  border-color: rgba(0,0,0,0.2);
+}
+
+.table-action-btn .n-icon {
+  font-size: 14px;
 }
 
 /* Вариант — синий (primary), Параметр — зелёный (success) */
@@ -960,13 +1027,13 @@ function onParamFormDelete() {
 .empty-desc {
   margin: 0;
   font-size: 0.85rem;
-  color: var(--tg-theme-hint-color, #999);
+  color: var(--text-muted);
   width: 100%;
 }
 
 .empty-label {
   font-size: 0.75rem;
-  color: var(--tg-theme-hint-color, #999);
+  color: var(--text-muted);
   align-self: flex-start;
 }
 
@@ -976,35 +1043,40 @@ function onParamFormDelete() {
   gap: 8px;
   width: 100%;
   padding: 12px 16px;
-  background: var(--tg-theme-secondary-bg-color, #f5f5f5);
-  border: none;
-  border-radius: 8px;
+  background: rgba(0,0,0,0.04);
+  border: 1px solid var(--divider);
+  border-radius: 12px;
   cursor: pointer;
   text-align: left;
   font: inherit;
+  transition: all 0.15s ease;
+}
+
+.empty-card:hover {
+  background: rgba(0,0,0,0.08);
+  border-color: rgba(0,0,0,0.12);
 }
 
 .empty-card-name {
   flex: 1;
   font-weight: 600;
-  color: var(--tg-theme-text-color, #333);
+  color: var(--text);
 }
 
 .empty-card-badge {
   font-size: 0.75rem;
   padding: 4px 8px;
-  border-radius: 6px;
-  background: rgba(255, 193, 7, 0.3);
-  color: var(--tg-theme-text-color, #333);
+  border-radius: 8px;
+  background: rgba(0,0,0,0.06);
+  color: var(--text);
 }
 
 .empty-card-weight {
-  background: var(--tg-theme-hint-color, #e0e0e0);
-  opacity: 0.8;
+  background: rgba(0,0,0,0.08);
 }
 
 .empty-card-chevron {
-  color: var(--tg-theme-hint-color, #999);
+  color: var(--text-muted);
   font-size: 1.2rem;
 }
 
