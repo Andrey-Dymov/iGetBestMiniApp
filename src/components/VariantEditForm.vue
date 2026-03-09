@@ -347,7 +347,7 @@ function onHeroClick(e: MouseEvent) {
 
 <style scoped>
 .variant-card {
-  --card-bg: #D3D4D1;
+  --card-bg: #FFFFFF;
   --card-radius: 20px;
   --accent: #2d9d5c;
   --text: var(--tg-theme-text-color, #1a1a1a);
@@ -367,7 +367,7 @@ function onHeroClick(e: MouseEvent) {
 .variant-card-hero {
   position: relative;
   width: 100%;
-  height: 280px;
+  height: 140px;
   background: linear-gradient(160deg, #d4ccc4 0%, #b8afa5 100%);
   overflow: hidden;
   cursor: pointer;
@@ -521,9 +521,9 @@ function onHeroClick(e: MouseEvent) {
 }
 
 .variant-score-input :deep(.n-input) {
-  --n-color: #D3D4D1 !important;
-  --n-color-focus: #D3D4D1 !important;
-  --n-color-disabled: #D3D4D1 !important;
+  --n-color: #FFFFFF !important;
+  --n-color-focus: #FFFFFF !important;
+  --n-color-disabled: #FFFFFF !important;
   --n-border: none !important;
   --n-border-hover: none !important;
   --n-border-focus: none !important;
@@ -531,11 +531,11 @@ function onHeroClick(e: MouseEvent) {
 }
 
 .variant-score-input :deep(.n-input-number-button) {
-  background: #D3D4D1 !important;
+  background: #FFFFFF !important;
 }
 
 .variant-score-input :deep(.n-input-number-button__content) {
-  background: #D3D4D1 !important;
+  background: #FFFFFF !important;
 }
 
 .variant-score-pm {

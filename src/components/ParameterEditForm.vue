@@ -820,7 +820,7 @@ function incVariantNumeric(variantId: string, direction: number) {
 
 <style scoped>
 .param-card {
-  --card-bg: #D3D4D1;
+  --card-bg: #FFFFFF;
   --card-radius: 20px;
   --text: var(--tg-theme-text-color, #1a1a1a);
   --text-muted: #8a8580;
@@ -1072,9 +1072,9 @@ function incVariantNumeric(variantId: string, direction: number) {
   flex: 1;
   min-width: 100px;
   max-width: 200px;
-  --n-color: #D3D4D1 !important;
-  --n-color-focus: #D3D4D1 !important;
-  --n-color-disabled: #D3D4D1 !important;
+  --n-color: #FFFFFF !important;
+  --n-color-focus: #FFFFFF !important;
+  --n-color-disabled: #FFFFFF !important;
   --n-border: none !important;
   --n-border-hover: none !important;
   --n-border-focus: none !important;
@@ -1083,9 +1083,9 @@ function incVariantNumeric(variantId: string, direction: number) {
 }
 
 .param-criterion-input :deep(.n-input) {
-  --n-color: #D3D4D1 !important;
-  --n-color-focus: #D3D4D1 !important;
-  --n-color-disabled: #D3D4D1 !important;
+  --n-color: #FFFFFF !important;
+  --n-color-focus: #FFFFFF !important;
+  --n-color-disabled: #FFFFFF !important;
   --n-border: none !important;
   --n-border-hover: none !important;
   --n-border-focus: none !important;
@@ -1095,11 +1095,11 @@ function incVariantNumeric(variantId: string, direction: number) {
 }
 
 .param-criterion-input :deep(.n-input-number-button) {
-  background: #D3D4D1 !important;
+  background: #FFFFFF !important;
 }
 
 .param-criterion-input :deep(.n-input-number-button__content) {
-  background: #D3D4D1 !important;
+  background: #FFFFFF !important;
 }
 
 /* === Кнопки ± значений критериев === */
@@ -1354,9 +1354,9 @@ function incVariantNumeric(variantId: string, direction: number) {
   flex: 1;
   min-width: 80px;
   max-width: 140px;
-  --n-color: #D3D4D1 !important;
-  --n-color-focus: #D3D4D1 !important;
-  --n-color-disabled: #D3D4D1 !important;
+  --n-color: #FFFFFF !important;
+  --n-color-focus: #FFFFFF !important;
+  --n-color-disabled: #FFFFFF !important;
   --n-border: none !important;
   --n-border-hover: none !important;
   --n-border-focus: none !important;
@@ -1365,9 +1365,9 @@ function incVariantNumeric(variantId: string, direction: number) {
 }
 
 .param-variant-input :deep(.n-input) {
-  --n-color: #D3D4D1 !important;
-  --n-color-focus: #D3D4D1 !important;
-  --n-color-disabled: #D3D4D1 !important;
+  --n-color: #FFFFFF !important;
+  --n-color-focus: #FFFFFF !important;
+  --n-color-disabled: #FFFFFF !important;
   --n-border: none !important;
   --n-border-hover: none !important;
   --n-border-focus: none !important;
@@ -1376,11 +1376,11 @@ function incVariantNumeric(variantId: string, direction: number) {
 }
 
 .param-variant-input :deep(.n-input-number-button) {
-  background: #D3D4D1 !important;
+  background: #FFFFFF !important;
 }
 
 .param-variant-input :deep(.n-input-number-button__content) {
-  background: #D3D4D1 !important;
+  background: #FFFFFF !important;
 }
 
 .param-variant-badge {
@@ -1544,7 +1544,7 @@ function incVariantNumeric(variantId: string, direction: number) {
 /* === Модальное окно шаблонов === */
 .param-templates-modal {
   padding: 20px;
-  background: var(--card-bg, #D3D4D1);
+  background: var(--card-bg, #FFFFFF);
   border-radius: 16px;
   max-width: 90vw;
   box-shadow: 0 20px 60px rgba(80,60,40,0.18);
