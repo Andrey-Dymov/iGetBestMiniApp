@@ -101,6 +101,7 @@
   "variantForm": {
     "images": "Image",
     "imageUrlPlaceholder": "Paste image URL",
-    "pickFromDevice": "From device"
+    "pickFromDevice": "From device",
+    "addPhoto": "Add photo"
   }
 }

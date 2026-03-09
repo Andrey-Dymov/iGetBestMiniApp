@@ -462,8 +462,7 @@ function onParamFormDelete() {
     <NEmpty v-else :description="t('results.notFound')" class="empty" />
 
     <NModal :show="showVariantModal" @update:show="onVariantModalShow">
-      <div class="modal-content modal-content-scroll">
-        <h3>{{ editingVariant ? t('results.editVariant') : t('results.addVariant') }}</h3>
+      <div class="modal-content modal-content-scroll modal-content-variant">
         <VariantEditForm
           v-if="comparison"
           :variant="editingVariant"
@@ -872,6 +871,12 @@ function onParamFormDelete() {
 
 .modal-content h3 {
   margin: 0 0 16px 0;
+}
+
+.modal-content-variant {
+  padding: 16px;
+  background: transparent;
+  max-width: 400px;
 }
 
 .empty-state {

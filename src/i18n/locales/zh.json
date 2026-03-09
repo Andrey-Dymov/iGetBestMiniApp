@@ -101,6 +101,7 @@
   "variantForm": {
     "images": "图片",
     "imageUrlPlaceholder": "粘贴图片链接",
-    "pickFromDevice": "从设备"
+    "pickFromDevice": "从设备",
+    "addPhoto": "添加照片"
   }
 }

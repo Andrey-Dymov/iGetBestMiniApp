@@ -101,6 +101,7 @@
   "variantForm": {
     "images": "Изображение",
     "imageUrlPlaceholder": "Вставьте ссылку на картинку",
-    "pickFromDevice": "С устройства"
+    "pickFromDevice": "С устройства",
+    "addPhoto": "Добавить фото"
   }
 }
