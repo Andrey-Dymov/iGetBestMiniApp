@@ -327,7 +327,7 @@ function addSingleSample(name: string) {
               </div>
               <div v-if="c.variants.length" class="meta-line variants-names">
                 <span v-for="(v, i) in sortedVariants(c)" :key="v.id" class="variant-block">
-                  <span class="variant-rank">{{ i + 1 }}</span>
+                  <span class="variant-rank" :style="v.color ? { background: v.color, color: '#fff' } : {}">{{ i + 1 }}</span>
                   {{ v.name }}<span class="variant-score">{{ '\u00A0' }}–{{ '\u00A0' }}{{ Math.round(v.totalScore) }}</span>
                   <span v-if="i < sortedVariants(c).length - 1" class="variant-sep">|</span>
                 </span>

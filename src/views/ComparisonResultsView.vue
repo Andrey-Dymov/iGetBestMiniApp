@@ -397,7 +397,7 @@ function onParamFormDelete() {
                       <span class="variant-name">{{ v.name }}</span>
                     </div>
                     <div class="variant-score-row">
-                      <span class="variant-rank">{{ i + 1 }}</span>
+                      <span class="variant-rank" :style="v.color ? { background: v.color, color: '#fff' } : {}">{{ i + 1 }}</span>
                       <span class="variant-score">{{ Math.round(v.totalScore) }}</span>
                     </div>
                     <img
@@ -407,11 +407,7 @@ function onParamFormDelete() {
                       class="variant-header-thumb"
                       @error="($event.target as HTMLImageElement)?.style?.setProperty('display', 'none')"
                     />
-                    <div
-                      v-else
-                      class="variant-thumb-placeholder"
-                      :style="v.color ? { background: v.color } : {}"
-                    ></div>
+                    <div v-else class="variant-thumb-empty"></div>
                   </div>
                 </th>
               </TransitionGroup>
@@ -691,11 +687,10 @@ function onParamFormDelete() {
   flex-shrink: 0;
 }
 
-.variant-thumb-placeholder {
+.variant-thumb-empty {
   height: 32px;
   min-width: 40px;
   flex-shrink: 0;
-  border-radius: 6px;
 }
 
 .variant-score-row {

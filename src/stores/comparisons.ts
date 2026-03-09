@@ -93,6 +93,17 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     save()
   }
 
+  function assignColorsToVariants(c: Comparison) {
+    const usedColors = new Set(c.variants.filter((v) => v.color).map((v) => v.color!))
+    for (const v of c.variants) {
+      if (!v.color) {
+        v.color = VARIANT_PALETTE.find((cl) => !usedColors.has(cl))
+          ?? VARIANT_PALETTE[c.variants.indexOf(v) % VARIANT_PALETTE.length]
+        usedColors.add(v.color)
+      }
+    }
+  }
+
   function addVariant(comparisonId: string, name: string): Variant {
     const c = getComparison(comparisonId)
     if (!c) throw new Error('Comparison not found')
@@ -269,6 +280,7 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     let added = 0
     for (const sample of samples) {
       if (!existingNames.has(sample.name)) {
+        assignColorsToVariants(sample)
         comparisons.value.push(sample)
         existingNames.add(sample.name)
         added++
@@ -283,6 +295,7 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     if (existingNames.has(name)) return null
     const sample = getSampleComparisons().find((s) => s.name === name)
     if (!sample) return null
+    assignColorsToVariants(sample)
     comparisons.value.push(sample)
     save()
     return sample
@@ -364,6 +377,7 @@ export const useComparisonsStore = defineStore('comparisons', () => {
         })
       }
     }
+    assignColorsToVariants(c)
     recalculateTotalScores(c)
     comparisons.value.push(c)
     save()
@@ -374,6 +388,7 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     const c = importFromJSON(jsonStr)
     if (!c) return null
     c.name = generateUniqueName(c.name)
+    assignColorsToVariants(c)
     comparisons.value.push(c)
     save()
     return c
@@ -384,6 +399,7 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     if (!parsed.ok) return null
     const c = parsedToComparison(parsed.data)
     c.name = generateUniqueName(c.name)
+    assignColorsToVariants(c)
     comparisons.value.push(c)
     save()
     return c
