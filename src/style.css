@@ -7,3 +7,11 @@
 #app {
   min-height: 100vh;
 }
+
+/* Увеличение шрифтов на мобильных (iPhone и др.) */
+@media (max-width: 768px) {
+  html {
+    font-size: 20px;
+    -webkit-text-size-adjust: 100%;
+  }
+}

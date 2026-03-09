@@ -62,7 +62,7 @@
     "editParam": "Edit Parameter",
     "variantNamePlaceholder": "Option name",
     "paramNamePlaceholder": "Parameter name",
-    "weight": "Importance (1–10)",
+    "weight": "Importance",
     "paramTypeNumber": "Number",
     "paramTypeText": "Text"
   },

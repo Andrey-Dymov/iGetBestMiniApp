@@ -62,7 +62,7 @@
     "editParam": "Редактировать параметр",
     "variantNamePlaceholder": "Название варианта",
     "paramNamePlaceholder": "Название параметра",
-    "weight": "Важность (1–10)",
+    "weight": "Важность",
     "paramTypeNumber": "Числовой",
     "paramTypeText": "Текстовой"
   },

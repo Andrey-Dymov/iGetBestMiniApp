@@ -546,11 +546,27 @@ function formatNumber(v: number | null): string {
           </NRadioGroup>
         </NFormItem>
         <NFormItem :label="t('results.weight')">
-          <NSpace align="center">
-            <NButton size="small" :disabled="weight <= 1" @click="weight = Math.max(1, weight - 1)">−</NButton>
-            <span class="param-weight-value">{{ weight }}</span>
-            <NButton size="small" :disabled="weight >= 10" @click="weight = Math.min(10, weight + 1)">+</NButton>
-          </NSpace>
+          <div class="param-form-weight-row">
+            <div class="param-form-weight-buttons">
+              <button
+                type="button"
+                class="param-form-weight-btn"
+                :disabled="weight <= 1"
+                @click="weight = Math.max(1, weight - 1)"
+              >
+                −
+              </button>
+              <button
+                type="button"
+                class="param-form-weight-btn"
+                :disabled="weight >= 10"
+                @click="weight = Math.min(10, weight + 1)"
+              >
+                +
+              </button>
+            </div>
+            <span class="param-form-weight-badge">{{ weight }}</span>
+          </div>
         </NFormItem>
       </div>
     </div>
@@ -595,7 +611,7 @@ function formatNumber(v: number | null): string {
             class="param-criterion-input"
             @update:value="(v) => onCriterionNumberInput(cr, v)"
           />
-          <div class="param-criterion-scores">
+          <div class="param-criterion-scores param-criterion-scores--desktop">
             <button
               v-for="s in 11"
               :key="s - 1"
@@ -606,6 +622,32 @@ function formatNumber(v: number | null): string {
             >
               {{ s - 1 }}
             </button>
+          </div>
+          <div class="param-criterion-scores-mobile">
+            <div class="param-criterion-score-buttons">
+              <button
+                type="button"
+                class="param-criterion-score-btn param-criterion-score-btn--minus"
+                :disabled="cr.score <= 0"
+                @click="onScoreClick(cr, Math.max(0, Math.round(cr.score) - 1))"
+              >
+                −
+              </button>
+              <button
+                type="button"
+                class="param-criterion-score-btn param-criterion-score-btn--plus"
+                :disabled="cr.score >= 10"
+                @click="onScoreClick(cr, Math.min(10, Math.round(cr.score) + 1))"
+              >
+                +
+              </button>
+            </div>
+            <span
+              class="param-criterion-score-value"
+              :class="'score-' + Math.min(10, Math.floor(cr.score))"
+            >
+              {{ Math.round(cr.score) }}
+            </span>
           </div>
           <NButton size="small" quaternary type="error" class="param-criterion-remove" @click="removeCriterion(cr)">×</NButton>
         </div>
@@ -784,10 +826,72 @@ function formatNumber(v: number | null): string {
   font-weight: 700;
   color: var(--tg-theme-text-color, #333);
 }
-.param-weight-value {
-  min-width: 2ch;
+.param-form-weight-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.param-form-weight-buttons {
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  background: rgba(128, 128, 128, 0.08);
+  height: 22px;
+  box-sizing: border-box;
+}
+
+.param-form-weight-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--tg-theme-text-color, #333);
+  font-size: 1.1rem;
+  font-weight: 300;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+.param-form-weight-btn:not(:last-child) {
+  border-right: 1px solid rgba(128, 128, 128, 0.3);
+}
+
+.param-form-weight-btn:hover:not(:disabled) {
+  background: rgba(128, 128, 128, 0.15);
+}
+
+.param-form-weight-btn:active:not(:disabled) {
+  background: rgba(128, 128, 128, 0.25);
+}
+
+.param-form-weight-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.param-form-weight-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--tg-theme-text-color, #333);
+  background: rgba(128, 128, 128, 0.2);
+  padding: 0 6px;
+  border-radius: 4px;
+  min-width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  font-weight: 600;
+  box-sizing: border-box;
 }
 .param-criteria-empty {
   padding: 20px 0;
@@ -835,6 +939,101 @@ function formatNumber(v: number | null): string {
   display: flex;
   gap: 2px;
   flex-shrink: 0;
+}
+
+/* Кнопки −/+ и значение на маленьких экранах */
+.param-criterion-scores-mobile {
+  display: none;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.param-criterion-score-buttons {
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  background: rgba(128, 128, 128, 0.08);
+  height: 22px;
+  box-sizing: border-box;
+}
+
+.param-criterion-score-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--tg-theme-text-color, #333);
+  font-size: 1.1rem;
+  font-weight: 300;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+.param-criterion-score-btn:not(:last-child) {
+  border-right: 1px solid rgba(128, 128, 128, 0.3);
+}
+
+.param-criterion-score-btn:hover:not(:disabled) {
+  background: rgba(128, 128, 128, 0.15);
+}
+
+.param-criterion-score-btn:active:not(:disabled) {
+  background: rgba(128, 128, 128, 0.25);
+}
+
+.param-criterion-score-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.param-criterion-score-value {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.95);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.param-criterion-score-value.score-0 { background: #cc0000; }
+.param-criterion-score-value.score-1 { background: #e64d00; }
+.param-criterion-score-value.score-2 { background: #ff7f00; }
+.param-criterion-score-value.score-3 { background: #ff9900; }
+.param-criterion-score-value.score-4 { background: #e6b300; }
+.param-criterion-score-value.score-5 { background: #ccb300; }
+.param-criterion-score-value.score-6 { background: #99a600; }
+.param-criterion-score-value.score-7 { background: #66a600; }
+.param-criterion-score-value.score-8 { background: #33a600; }
+.param-criterion-score-value.score-9 { background: #1a8c00; }
+.param-criterion-score-value.score-10 { background: #006600; }
+
+@media (max-width: 768px) {
+  .param-criterion-scores--desktop {
+    display: none !important;
+  }
+  .param-criterion-scores-mobile {
+    display: flex;
+  }
+}
+
+@media (min-width: 769px) {
+  .param-criterion-scores-mobile {
+    display: none !important;
+  }
 }
 .param-criterion-remove {
   flex-shrink: 0;

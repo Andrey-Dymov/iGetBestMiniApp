@@ -415,9 +415,27 @@ function onParamFormDelete() {
                         :max="10"
                         :step="1"
                         :tooltip="false"
-                        class="param-weight-slider"
+                        class="param-weight-slider param-weight-slider--desktop"
                         @update:value="(v: number) => setParamWeight(p, v)"
                       />
+                      <div class="param-weight-buttons">
+                        <button
+                          type="button"
+                          class="param-weight-btn param-weight-btn--minus"
+                          :disabled="p.weight <= 0"
+                          @click.stop="setParamWeight(p, Math.max(0, p.weight - 1))"
+                        >
+                          −
+                        </button>
+                        <button
+                          type="button"
+                          class="param-weight-btn param-weight-btn--plus"
+                          :disabled="p.weight >= 10"
+                          @click.stop="setParamWeight(p, Math.min(10, p.weight + 1))"
+                        >
+                          +
+                        </button>
+                      </div>
                       <span class="param-weight-badge">{{ p.weight }}</span>
                     </div>
                   </div>
@@ -729,7 +747,74 @@ function onParamFormDelete() {
   padding: 2px 6px;
   border-radius: 4px;
   min-width: 22px;
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
+  box-sizing: border-box;
+}
+
+/* Кнопки −/+ на маленьких экранах вместо слайдера */
+.param-weight-buttons {
+  display: none;
+  flex-shrink: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  background: rgba(128, 128, 128, 0.08);
+  height: 22px;
+  box-sizing: border-box;
+}
+
+.param-weight-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--tg-theme-text-color, #333);
+  font-size: 1.1rem;
+  font-weight: 300;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.param-weight-btn:not(:last-child) {
+  border-right: 1px solid rgba(128, 128, 128, 0.3);
+}
+
+.param-weight-btn:hover:not(:disabled) {
+  background: rgba(128, 128, 128, 0.15);
+}
+
+.param-weight-btn:active:not(:disabled) {
+  background: rgba(128, 128, 128, 0.25);
+}
+
+.param-weight-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .param-weight-slider--desktop {
+    display: none !important;
+  }
+  .param-weight-buttons {
+    display: flex;
+  }
+}
+
+@media (min-width: 769px) {
+  .param-weight-buttons {
+    display: none !important;
+  }
 }
 
 .cell {

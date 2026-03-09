@@ -62,7 +62,7 @@
     "editParam": "编辑参数",
     "variantNamePlaceholder": "选项名称",
     "paramNamePlaceholder": "参数名称",
-    "weight": "重要性 (1–10)",
+    "weight": "重要性",
     "paramTypeNumber": "数值",
     "paramTypeText": "文本"
   },
