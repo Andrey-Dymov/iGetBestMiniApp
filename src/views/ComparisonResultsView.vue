@@ -498,8 +498,7 @@ function onParamFormDelete() {
     </NModal>
 
     <NModal :show="showParamModal" @update:show="onParamModalShow">
-      <div class="modal-content modal-content-scroll">
-        <h3>{{ editingParam ? t('results.editParam') : t('results.addParam') }}</h3>
+      <div class="modal-content modal-content-scroll modal-content-variant">
         <ParameterEditForm
           v-if="comparison"
           :parameter="editingParam"

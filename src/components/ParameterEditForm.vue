@@ -1,19 +1,13 @@
 <script setup lang="ts">
 import { ref, watch, TransitionGroup, nextTick, computed } from 'vue'
 import {
-  NForm,
-  NFormItem,
   NInput,
   NInputNumber,
-  NButton,
-  NIcon,
-  NSpace,
   NRadioGroup,
   NRadioButton,
   NModal,
   NScrollbar,
 } from 'naive-ui'
-import { AddOutline } from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
 import { findScoreFromCriteria } from '../utils/importExport'
 import type { Parameter, Criterion, Variant, Value, Comparison } from '../types'
@@ -533,64 +527,90 @@ function formatNumber(v: number | null): string {
   if (v == null || !Number.isFinite(v)) return ''
   return Number.isInteger(v) ? String(v) : String(v)
 }
+
+function getSmartStep(value: number, isDecrease: boolean): number {
+  const abs = Math.abs(value)
+  if (abs < 10) return 1
+  const digits = String(Math.floor(abs))
+  const firstDigit = Number(digits[0])
+  const magnitude = Math.pow(10, digits.length - 1)
+  if (isDecrease) {
+    if (firstDigit <= 2 && digits.length > 1) return magnitude / 10
+    return magnitude
+  }
+  if (firstDigit === 1 && digits.length > 1) return magnitude / 10
+  return magnitude
+}
+
+function incCriterionNumeric(cr: Criterion, direction: number) {
+  const cur = cr.numericValue ?? 0
+  const isDecrease = (direction < 0 && cur >= 0) || (direction > 0 && cur < 0)
+  const step = getSmartStep(cur, isDecrease)
+  const newVal = cur + direction * step
+  onCriterionNumberInput(cr, newVal)
+}
+
+function incVariantNumeric(variantId: string, direction: number) {
+  const vv = variantValues.value[variantId] ?? {}
+  const cur = vv.numericValue ?? 0
+  const isDecrease = (direction < 0 && cur >= 0) || (direction > 0 && cur < 0)
+  const step = getSmartStep(cur, isDecrease)
+  variantValues.value[variantId] = { ...vv, numericValue: cur + direction * step }
+}
 </script>
 
 <template>
-  <NForm label-placement="top" class="param-form">
-    <div class="param-form-block param-form-block-basic">
-      <div class="param-form-row param-form-row-name-unit">
-        <NFormItem :label="t('comparisons.name')" class="param-form-item-name">
-          <NInput v-model:value="name" :placeholder="t('results.paramNamePlaceholder')" />
-        </NFormItem>
-        <NFormItem :label="t('paramForm.unitShort')" class="param-form-item-unit">
-          <NInput v-model:value="unit" :placeholder="t('paramForm.unitPlaceholder')" />
-        </NFormItem>
+  <div class="param-card">
+    <!-- Заголовок карточки -->
+    <div class="param-card-header">
+      <div class="param-card-header-left">
+        <input
+          v-model="name"
+          type="text"
+          class="param-card-name-input"
+          :placeholder="t('results.paramNamePlaceholder')"
+          @keyup.enter="save"
+        />
+        <input
+          v-model="unit"
+          type="text"
+          class="param-card-unit-input"
+          :placeholder="t('paramForm.unitPlaceholder')"
+        />
       </div>
-      <div class="param-form-row">
-        <NFormItem :label="t('paramForm.type')">
-          <NRadioGroup :value="paramType || 'text'" @update:value="setParamType">
-            <NRadioButton value="number">{{ t('results.paramTypeNumber') }}</NRadioButton>
-            <NRadioButton value="text">{{ t('results.paramTypeText') }}</NRadioButton>
-          </NRadioGroup>
-        </NFormItem>
-        <NFormItem :label="t('results.weight')">
-          <div class="param-form-weight-row">
-            <div class="param-form-weight-buttons">
-              <button
-                type="button"
-                class="param-form-weight-btn"
-                :disabled="weight <= 1"
-                @click="weight = Math.max(1, weight - 1)"
-              >
-                −
-              </button>
-              <button
-                type="button"
-                class="param-form-weight-btn"
-                :disabled="weight >= 10"
-                @click="weight = Math.min(10, weight + 1)"
-              >
-                +
-              </button>
-            </div>
-            <span class="param-form-weight-badge">{{ weight }}</span>
-          </div>
-        </NFormItem>
+      <div class="param-card-weight">
+        <div class="param-card-weight-pm">
+          <button type="button" :disabled="weight <= 1" @click="weight = Math.max(1, weight - 1)">−</button>
+          <button type="button" :disabled="weight >= 10" @click="weight = Math.min(10, weight + 1)">+</button>
+        </div>
+        <span class="param-card-weight-badge">{{ weight }}</span>
       </div>
     </div>
 
-    <div class="param-form-block">
-      <div class="param-form-section-header">
-        <h4 class="param-form-section-title">{{ t('paramForm.criteria') }}</h4>
-        <NSpace>
-          <NButton @click="showTemplatesModal = true">{{ t('paramForm.template') }}</NButton>
-          <NButton @click="addCriterion">
-            <template #icon>
-              <NIcon><AddOutline /></NIcon>
-            </template>
-            {{ t('paramForm.criterionName') }}
-          </NButton>
-        </NSpace>
+    <!-- Тип параметра -->
+    <div class="param-card-type-row">
+      <button
+        type="button"
+        class="param-card-type-pill"
+        :class="{ active: paramType === 'number' }"
+        @click="setParamType('number')"
+      >{{ t('results.paramTypeNumber') }}</button>
+      <button
+        type="button"
+        class="param-card-type-pill"
+        :class="{ active: paramType === 'text' }"
+        @click="setParamType('text')"
+      >{{ t('results.paramTypeText') }}</button>
+    </div>
+
+    <!-- Критерии -->
+    <div class="param-card-section">
+      <div class="param-card-section-header">
+        <span class="param-card-section-title">{{ t('paramForm.criteria') }}</span>
+        <div class="param-card-section-actions">
+          <button type="button" class="param-card-btn-outline" @click="showTemplatesModal = true">{{ t('paramForm.template') }}</button>
+          <button type="button" class="param-card-btn-outline" @click="addCriterion">+ {{ t('paramForm.criterionName') }}</button>
+        </div>
       </div>
     <div v-if="criteria.length === 0" class="param-criteria-empty">
       <p class="param-criteria-empty-hint">{{ t('paramForm.criteriaEmptyHint') }}</p>
@@ -615,10 +635,15 @@ function formatNumber(v: number | null): string {
             size="small"
             :placeholder="t('paramForm.valueNumber')"
             :format="formatNumber"
+            :show-button="false"
             clearable
             class="param-criterion-input"
             @update:value="(v) => onCriterionNumberInput(cr, v)"
           />
+          <div v-if="paramType === 'number'" class="param-criterion-pm">
+            <button type="button" @click="incCriterionNumeric(cr, -1)">−</button>
+            <button type="button" @click="incCriterionNumeric(cr, 1)">+</button>
+          </div>
           <div class="param-criterion-scores param-criterion-scores--desktop">
             <button
               v-for="s in 11"
@@ -632,104 +657,113 @@ function formatNumber(v: number | null): string {
             </button>
           </div>
           <div class="param-criterion-scores-mobile">
-            <div class="param-criterion-score-buttons">
-              <button
-                type="button"
-                class="param-criterion-score-btn param-criterion-score-btn--minus"
-                :disabled="cr.score <= 0"
-                @click="onScoreClick(cr, Math.max(0, Math.round(cr.score) - 1))"
-              >
-                −
-              </button>
-              <button
-                type="button"
-                class="param-criterion-score-btn param-criterion-score-btn--plus"
-                :disabled="cr.score >= 10"
-                @click="onScoreClick(cr, Math.min(10, Math.round(cr.score) + 1))"
-              >
-                +
-              </button>
-            </div>
+            <button
+              type="button"
+              class="param-criterion-score-pill param-criterion-score-pill--minus"
+              :disabled="cr.score <= 0"
+              @click="onScoreClick(cr, Math.max(0, Math.round(cr.score) - 1))"
+            >
+              ‹
+            </button>
             <span
               class="param-criterion-score-value"
               :class="'score-' + Math.min(10, Math.floor(cr.score))"
             >
               {{ Math.round(cr.score) }}
             </span>
+            <button
+              type="button"
+              class="param-criterion-score-pill param-criterion-score-pill--plus"
+              :disabled="cr.score >= 10"
+              @click="onScoreClick(cr, Math.min(10, Math.round(cr.score) + 1))"
+            >
+              ›
+            </button>
           </div>
-          <NButton size="small" quaternary type="error" class="param-criterion-remove" @click="removeCriterion(cr)">×</NButton>
+          <button type="button" class="param-criterion-remove" @click="removeCriterion(cr)">×</button>
         </div>
       </TransitionGroup>
     </div>
     </div>
 
     <template v-if="variants.length > 0 && criteria.length > 0">
-      <div class="param-form-block">
-        <h4 class="param-form-section-title">{{ t('paramForm.scoresVariants') }}</h4>
+      <div class="param-card-section">
+        <span class="param-card-section-title">{{ t('paramForm.scoresVariants') }}</span>
         <div class="param-variants-grid">
         <div v-for="v in variants" :key="v.id" class="param-variant-cell">
           <span class="param-variant-label">{{ v.name }}</span>
           <template v-if="paramType === 'number'">
-            <NInputNumber
-              :value="typeof getVariantDisplayValue(variantValues[v.id]) === 'number' ? getVariantDisplayValue(variantValues[v.id]) as number : null"
-              size="small"
-              :placeholder="t('paramForm.value')"
-              :format="formatNumber"
-              clearable
-              class="param-variant-input"
-              @update:value="(val: number | null) => { variantValues[v.id] = { ...(variantValues[v.id] || {}), numericValue: val ?? undefined } }"
-            />
-            <span
-              v-if="getVariantDisplayValue(variantValues[v.id]) != null"
-              class="param-variant-badge"
-              :class="'score-badge-' + Math.min(10, Math.floor(getScoreForValue(getVariantDisplayValue(variantValues[v.id]))))"
-            >
-              {{ (Math.round(getScoreForValue(getVariantDisplayValue(variantValues[v.id])) * 10) / 10).toFixed(1) }}
-            </span>
+            <div class="param-variant-controls">
+              <NInputNumber
+                :value="typeof getVariantDisplayValue(variantValues[v.id]) === 'number' ? getVariantDisplayValue(variantValues[v.id]) as number : null"
+                size="small"
+                :placeholder="t('paramForm.value')"
+                :format="formatNumber"
+                :show-button="false"
+                clearable
+                class="param-variant-input"
+                @update:value="(val: number | null) => { variantValues[v.id] = { ...(variantValues[v.id] || {}), numericValue: val ?? undefined } }"
+              />
+              <div class="param-variant-pm">
+                <button type="button" @click="incVariantNumeric(v.id, -1)">−</button>
+                <button type="button" @click="incVariantNumeric(v.id, 1)">+</button>
+              </div>
+              <span
+                v-if="getVariantDisplayValue(variantValues[v.id]) != null"
+                class="param-variant-badge"
+                :class="'score-badge-' + Math.min(10, Math.floor(getScoreForValue(getVariantDisplayValue(variantValues[v.id]))))"
+              >
+                {{ (Math.round(getScoreForValue(getVariantDisplayValue(variantValues[v.id])) * 10) / 10).toFixed(1) }}
+              </span>
+            </div>
           </template>
           <template v-else>
-            <div v-if="displayedCriteria.length" class="param-variant-buttons">
-              <button
-                v-for="cr in displayedCriteria"
-                :key="cr.id"
-                type="button"
-                class="param-criterion-btn"
-                :class="['score-' + Math.min(10, Math.floor(cr.score)), { active: String(getVariantDisplayValue(variantValues[v.id])).toLowerCase() === String(cr.textValue).toLowerCase() }]"
-                @click="variantValues[v.id] = { ...(variantValues[v.id] || {}), textValue: cr.textValue }"
+            <div class="param-variant-controls">
+              <div v-if="displayedCriteria.length" class="param-variant-buttons">
+                <button
+                  v-for="cr in displayedCriteria"
+                  :key="cr.id"
+                  type="button"
+                  class="param-criterion-btn"
+                  :class="['score-' + Math.min(10, Math.floor(cr.score)), { active: String(getVariantDisplayValue(variantValues[v.id])).toLowerCase() === String(cr.textValue).toLowerCase() }]"
+                  @click="variantValues[v.id] = { ...(variantValues[v.id] || {}), textValue: cr.textValue }"
+                >
+                  {{ cr.name || cr.textValue }}
+                </button>
+              </div>
+              <NInput
+                v-else
+                :value="String(getVariantDisplayValue(variantValues[v.id]) ?? '')"
+                size="small"
+                :placeholder="t('paramForm.value')"
+                class="param-variant-input"
+                @update:value="(val: string) => { variantValues[v.id] = { ...(variantValues[v.id] || {}), textValue: val || undefined } }"
+              />
+              <span
+                v-if="getVariantDisplayValue(variantValues[v.id]) != null && getVariantDisplayValue(variantValues[v.id]) !== ''"
+                class="param-variant-badge"
+                :class="'score-badge-' + Math.min(10, Math.floor(getScoreForValue(getVariantDisplayValue(variantValues[v.id]))))"
               >
-                {{ cr.name || cr.textValue }}
-              </button>
+                {{ (Math.round(getScoreForValue(getVariantDisplayValue(variantValues[v.id])) * 10) / 10).toFixed(1) }}
+              </span>
             </div>
-            <NInput
-              v-else
-              :value="String(getVariantDisplayValue(variantValues[v.id]) ?? '')"
-              size="small"
-              :placeholder="t('paramForm.value')"
-              class="param-variant-input"
-              @update:value="(val: string) => { variantValues[v.id] = { ...(variantValues[v.id] || {}), textValue: val || undefined } }"
-            />
-            <span
-              v-if="getVariantDisplayValue(variantValues[v.id]) != null && getVariantDisplayValue(variantValues[v.id]) !== ''"
-              class="param-variant-badge"
-              :class="'score-badge-' + Math.min(10, Math.floor(getScoreForValue(getVariantDisplayValue(variantValues[v.id]))))"
-            >
-              {{ (Math.round(getScoreForValue(getVariantDisplayValue(variantValues[v.id])) * 10) / 10).toFixed(1) }}
-            </span>
           </template>
         </div>
       </div>
     </div>
     </template>
 
-    <NSpace justify="space-between" class="param-form-actions">
-      <NButton v-if="!isNew" type="error" quaternary @click="doDelete">{{ t('common.delete') }}</NButton>
+    <div class="param-card-actions">
+      <button v-if="!isNew" type="button" class="btn-delete" @click="doDelete">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      </button>
       <div v-else />
-      <NSpace>
-        <NButton @click="cancel">{{ t('common.cancel') }}</NButton>
-        <NButton type="primary" :disabled="!name.trim()" @click="save">{{ isNew ? t('comparisons.create') : t('common.save') }}</NButton>
-      </NSpace>
-    </NSpace>
-  </NForm>
+      <div class="param-card-actions-right">
+        <button type="button" class="btn-cancel" @click="cancel">{{ t('common.cancel') }}</button>
+        <button type="button" class="btn-save" :disabled="!name.trim()" @click="save">{{ isNew ? t('comparisons.create') : t('common.save') }}</button>
+      </div>
+    </div>
+  </div>
 
   <NModal :show="showTemplatesModal" @update:show="onTemplatesModalUpdate">
     <div class="param-templates-modal">
@@ -777,157 +811,247 @@ function formatNumber(v: number | null): string {
           </button>
         </div>
       </NScrollbar>
-      <NSpace justify="end" class="param-templates-modal-actions">
-        <NButton @click="showTemplatesModal = false">{{ t('common.cancel') }}</NButton>
-      </NSpace>
+      <div class="param-templates-modal-actions">
+        <button type="button" class="btn-cancel" @click="showTemplatesModal = false">{{ t('common.cancel') }}</button>
+      </div>
     </div>
   </NModal>
 </template>
 
 <style scoped>
-.param-form {
+.param-card {
+  --card-bg: #D3D4D1;
+  --card-radius: 20px;
+  --text: var(--tg-theme-text-color, #1a1a1a);
+  --text-muted: #8a8580;
+  --divider: rgba(0,0,0,0.06);
   max-width: 100%;
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  overflow: visible;
+  box-shadow: 0 20px 60px rgba(80,60,40,0.18), 0 2px 6px rgba(80,60,40,0.08);
+  padding: 20px;
 }
 
-.param-form-block {
-  margin-top: 20px;
-}
-
-.param-form-block:first-child {
-  margin-top: 0;
-}
-
-.param-form-block-basic {
-  padding: 0;
-  border: none;
-  background: transparent;
-}
-
-.param-form-row {
+/* === Заголовок === */
+.param-card-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
   align-items: flex-start;
-}
-
-.param-form-row-name-unit {
-  gap: 16px;
-}
-
-.param-form-item-name {
-  flex: 1;
-  min-width: 120px;
-}
-
-.param-form-item-unit {
-  flex: 0 0 auto;
-  width: 80px;
-}
-
-.param-form-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
-.param-form-section-header .param-form-section-title {
-  margin: 0;
+
+.param-card-header-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
-.param-form-section-title {
-  margin: 0 0 12px 0;
-  font-size: 0.95rem;
+
+.param-card-name-input {
+  font-family: inherit;
+  font-size: 22px;
   font-weight: 700;
-  color: var(--tg-theme-text-color, #333);
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  padding: 4px 0;
+  border-bottom: 2px solid rgba(0,0,0,0.08);
+  transition: border-color 0.2s;
 }
-.param-form-weight-row {
+
+.param-card-name-input:focus {
+  border-bottom-color: rgba(0,0,0,0.25);
+}
+
+.param-card-name-input::placeholder {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.param-card-unit-input {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  padding: 2px 0;
+}
+
+.param-card-unit-input::placeholder {
+  color: rgba(0,0,0,0.2);
+}
+
+/* === Важность (в заголовке) === */
+.param-card-weight {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-top: 6px;
 }
 
-.param-form-weight-buttons {
+.param-card-weight-pm {
   display: flex;
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid rgba(128, 128, 128, 0.4);
-  background: rgba(128, 128, 128, 0.08);
-  height: 22px;
-  box-sizing: border-box;
+  gap: 4px;
 }
 
-.param-form-weight-btn {
+.param-card-weight-pm button {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--text);
+  background: rgba(0,0,0,0.06);
+  border: none;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 100%;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--tg-theme-text-color, #333);
-  font-size: 1.1rem;
-  font-weight: 300;
-  line-height: 1;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  box-sizing: border-box;
+  transition: all 0.15s ease;
 }
 
-.param-form-weight-btn:not(:last-child) {
-  border-right: 1px solid rgba(128, 128, 128, 0.3);
+.param-card-weight-pm button:hover:not(:disabled) {
+  background: rgba(0,0,0,0.12);
 }
 
-.param-form-weight-btn:hover:not(:disabled) {
-  background: rgba(128, 128, 128, 0.15);
+.param-card-weight-pm button:active:not(:disabled) {
+  background: rgba(0,0,0,0.18);
+  transform: scale(0.92);
 }
 
-.param-form-weight-btn:active:not(:disabled) {
-  background: rgba(128, 128, 128, 0.25);
-}
-
-.param-form-weight-btn:disabled {
-  opacity: 0.4;
+.param-card-weight-pm button:disabled {
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
-.param-form-weight-badge {
-  font-size: 0.7rem;
+.param-card-weight-badge {
+  min-width: 44px;
+  height: 32px;
+  border-radius: 6px;
+  font-size: 13px;
   font-weight: 700;
-  line-height: 1;
-  color: var(--tg-theme-text-color, #333);
-  background: rgba(128, 128, 128, 0.2);
-  padding: 0 6px;
-  border-radius: 4px;
-  min-width: 22px;
-  height: 22px;
+  font-variant-numeric: tabular-nums;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  box-sizing: border-box;
+  background: rgba(0,0,0,0.08);
+  color: var(--text);
 }
+
+/* === Тип параметра (pills) === */
+.param-card-type-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.param-card-type-pill {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  color: var(--text);
+  background: rgba(0,0,0,0.06);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.param-card-type-pill:hover:not(.active) {
+  background: rgba(0,0,0,0.1);
+}
+
+.param-card-type-pill.active {
+  background: var(--text);
+  color: var(--card-bg);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* === Секции === */
+.param-card-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--divider);
+}
+
+.param-card-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.param-card-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.param-card-section-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.param-card-btn-outline {
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1.5px solid rgba(0,0,0,0.12);
+  color: var(--text);
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.param-card-btn-outline:hover {
+  background: rgba(0,0,0,0.06);
+  border-color: rgba(0,0,0,0.2);
+}
+
+.param-card-btn-outline:active {
+  transform: scale(0.96);
+}
+
+/* === Критерии (пустое состояние) === */
 .param-criteria-empty {
-  padding: 20px 0;
-  color: var(--tg-theme-hint-color, #666);
+  padding: 16px 0;
+  color: var(--text-muted);
 }
 .param-criteria-empty-hint {
   margin: 0 0 8px 0;
-  font-size: 0.95rem;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--tg-theme-hint-color, #666);
+  color: var(--text-muted);
 }
 .param-criteria-empty-why {
-  margin: 0 0 12px 0;
-  font-size: 0.9rem;
+  margin: 0 0 10px 0;
+  font-size: 13px;
   line-height: 1.4;
 }
 .param-criteria-empty-examples {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 12px;
   opacity: 0.9;
   line-height: 1.4;
 }
+
+/* === Список критериев === */
 .param-criteria-list {
   display: flex;
   flex-direction: column;
@@ -948,73 +1072,130 @@ function formatNumber(v: number | null): string {
   flex: 1;
   min-width: 100px;
   max-width: 200px;
+  --n-color: #D3D4D1 !important;
+  --n-color-focus: #D3D4D1 !important;
+  --n-color-disabled: #D3D4D1 !important;
+  --n-border: none !important;
+  --n-border-hover: none !important;
+  --n-border-focus: none !important;
+  --n-box-shadow-focus: none !important;
+  --n-padding-left: 0 !important;
 }
+
+.param-criterion-input :deep(.n-input) {
+  --n-color: #D3D4D1 !important;
+  --n-color-focus: #D3D4D1 !important;
+  --n-color-disabled: #D3D4D1 !important;
+  --n-border: none !important;
+  --n-border-hover: none !important;
+  --n-border-focus: none !important;
+  --n-box-shadow-focus: none !important;
+  --n-padding-left: 0 !important;
+  border-radius: 10px !important;
+}
+
+.param-criterion-input :deep(.n-input-number-button) {
+  background: #D3D4D1 !important;
+}
+
+.param-criterion-input :deep(.n-input-number-button__content) {
+  background: #D3D4D1 !important;
+}
+
+/* === Кнопки ± значений критериев === */
+.param-criterion-pm {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.param-criterion-pm button {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--text);
+  background: rgba(0,0,0,0.06);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.param-criterion-pm button:hover {
+  background: rgba(0,0,0,0.12);
+}
+
+.param-criterion-pm button:active {
+  background: rgba(0,0,0,0.18);
+  transform: scale(0.92);
+}
+
+/* === Кнопки оценок (desktop) === */
 .param-criterion-scores {
   display: flex;
   gap: 2px;
   flex-shrink: 0;
 }
 
-/* Кнопки −/+ и значение на маленьких экранах */
 .param-criterion-scores-mobile {
   display: none;
   flex-shrink: 0;
   align-items: center;
-  gap: 8px;
+  gap: 0;
 }
 
-.param-criterion-score-buttons {
-  display: flex;
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid rgba(128, 128, 128, 0.4);
-  background: rgba(128, 128, 128, 0.08);
-  height: 22px;
-  box-sizing: border-box;
-}
-
-.param-criterion-score-btn {
+.param-criterion-score-pill {
+  width: 28px;
+  height: 32px;
+  border: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(0,0,0,0.45);
+  background: rgba(0,0,0,0.04);
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 100%;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--tg-theme-text-color, #333);
-  font-size: 1.1rem;
-  font-weight: 300;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  box-sizing: border-box;
+  transition: all 0.15s ease;
 }
 
-.param-criterion-score-btn:not(:last-child) {
-  border-right: 1px solid rgba(128, 128, 128, 0.3);
+.param-criterion-score-pill--minus {
+  border-radius: 8px 0 0 8px;
 }
 
-.param-criterion-score-btn:hover:not(:disabled) {
-  background: rgba(128, 128, 128, 0.15);
+.param-criterion-score-pill--plus {
+  border-radius: 0 8px 8px 0;
 }
 
-.param-criterion-score-btn:active:not(:disabled) {
-  background: rgba(128, 128, 128, 0.25);
+.param-criterion-score-pill:hover:not(:disabled) {
+  background: rgba(0,0,0,0.1);
+  color: rgba(0,0,0,0.7);
 }
 
-.param-criterion-score-btn:disabled {
-  opacity: 0.4;
+.param-criterion-score-pill:active:not(:disabled) {
+  background: rgba(0,0,0,0.16);
+  transform: scale(0.95);
+}
+
+.param-criterion-score-pill:disabled {
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
 .param-criterion-score-value {
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 4px;
-  font-size: 0.7rem;
+  min-width: 36px;
+  height: 32px;
+  padding: 0 4px;
+  border-radius: 0;
+  font-size: 13px;
   font-weight: 700;
-  line-height: 1;
+  font-variant-numeric: tabular-nums;
   color: rgba(255, 255, 255, 0.95);
   display: inline-flex;
   align-items: center;
@@ -1049,9 +1230,33 @@ function formatNumber(v: number | null): string {
     display: none !important;
   }
 }
+
 .param-criterion-remove {
   flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(192,57,43,0.1);
+  color: #c0392b;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
 }
+
+.param-criterion-remove:hover {
+  background: rgba(192,57,43,0.2);
+}
+
+.param-criterion-remove:active {
+  transform: scale(0.9);
+}
+
+/* === Кнопки оценок (desktop grid) === */
 .param-score-btn {
   width: 14px;
   height: 14px;
@@ -1066,14 +1271,8 @@ function formatNumber(v: number | null): string {
   justify-content: center;
   color: rgba(255, 255, 255, 0.9);
 }
-.param-score-btn:not(.active) {
-  opacity: 0.5;
-}
-.param-score-btn.active {
-  opacity: 1;
-  border-color: rgba(0, 0, 0, 0.3);
-  color: #fff;
-}
+.param-score-btn:not(.active) { opacity: 0.5; }
+.param-score-btn.active { opacity: 1; border-color: rgba(0, 0, 0, 0.3); color: #fff; }
 .param-score-btn.score-0 { background: #cc0000; }
 .param-score-btn.score-1 { background: #e64d00; }
 .param-score-btn.score-2 { background: #ff7f00; }
@@ -1085,92 +1284,270 @@ function formatNumber(v: number | null): string {
 .param-score-btn.score-8 { background: #33a600; }
 .param-score-btn.score-9 { background: #1a8c00; }
 .param-score-btn.score-10 { background: #006600; }
+
+/* === Варианты === */
 .param-variants-grid {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  margin-top: 8px;
 }
 .param-variant-cell {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 10px;
+  flex-wrap: nowrap;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--divider);
 }
+.param-variant-cell:last-child { border-bottom: none; }
 .param-variant-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  flex-shrink: 0;
-  width: 120px;
-  min-width: 120px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  flex-shrink: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
+.param-variant-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.param-variant-pm {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.param-variant-pm button {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--text);
+  background: rgba(0,0,0,0.06);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.param-variant-pm button:hover {
+  background: rgba(0,0,0,0.12);
+}
+
+.param-variant-pm button:active {
+  background: rgba(0,0,0,0.18);
+  transform: scale(0.92);
+}
+
 .param-variant-input {
   flex: 1;
   min-width: 80px;
   max-width: 140px;
+  --n-color: #D3D4D1 !important;
+  --n-color-focus: #D3D4D1 !important;
+  --n-color-disabled: #D3D4D1 !important;
+  --n-border: none !important;
+  --n-border-hover: none !important;
+  --n-border-focus: none !important;
+  --n-box-shadow-focus: none !important;
+  --n-padding-left: 0 !important;
 }
+
+.param-variant-input :deep(.n-input) {
+  --n-color: #D3D4D1 !important;
+  --n-color-focus: #D3D4D1 !important;
+  --n-color-disabled: #D3D4D1 !important;
+  --n-border: none !important;
+  --n-border-hover: none !important;
+  --n-border-focus: none !important;
+  --n-box-shadow-focus: none !important;
+  --n-padding-left: 0 !important;
+}
+
+.param-variant-input :deep(.n-input-number-button) {
+  background: #D3D4D1 !important;
+}
+
+.param-variant-input :deep(.n-input-number-button__content) {
+  background: #D3D4D1 !important;
+}
+
 .param-variant-badge {
-  font-size: 0.56rem;
-  font-weight: 600;
+  min-width: 44px;
+  height: 32px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   color: #333;
-  padding: 1px 6px;
-  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
-.param-variant-badge.score-badge-0 { background: rgba(204, 0, 0, 0.35); }
-.param-variant-badge.score-badge-1 { background: rgba(230, 77, 0, 0.35); }
-.param-variant-badge.score-badge-2 { background: rgba(255, 127, 0, 0.35); }
-.param-variant-badge.score-badge-3 { background: rgba(255, 153, 0, 0.35); }
-.param-variant-badge.score-badge-4 { background: rgba(230, 179, 0, 0.35); }
-.param-variant-badge.score-badge-5 { background: rgba(204, 179, 0, 0.35); }
-.param-variant-badge.score-badge-6 { background: rgba(153, 166, 0, 0.35); }
-.param-variant-badge.score-badge-7 { background: rgba(102, 166, 0, 0.35); }
-.param-variant-badge.score-badge-8 { background: rgba(51, 166, 0, 0.35); }
-.param-variant-badge.score-badge-9 { background: rgba(26, 140, 0, 0.35); }
-.param-variant-badge.score-badge-10 { background: rgba(0, 102, 0, 0.35); }
+.param-variant-badge.score-badge-0 { background: rgba(204, 0, 0, 0.2); }
+.param-variant-badge.score-badge-1 { background: rgba(230, 77, 0, 0.2); }
+.param-variant-badge.score-badge-2 { background: rgba(255, 127, 0, 0.2); }
+.param-variant-badge.score-badge-3 { background: rgba(255, 153, 0, 0.2); }
+.param-variant-badge.score-badge-4 { background: rgba(230, 179, 0, 0.2); }
+.param-variant-badge.score-badge-5 { background: rgba(204, 179, 0, 0.2); }
+.param-variant-badge.score-badge-6 { background: rgba(153, 166, 0, 0.2); }
+.param-variant-badge.score-badge-7 { background: rgba(102, 166, 0, 0.2); }
+.param-variant-badge.score-badge-8 { background: rgba(51, 166, 0, 0.2); }
+.param-variant-badge.score-badge-9 { background: rgba(26, 140, 0, 0.2); }
+.param-variant-badge.score-badge-10 { background: rgba(0, 102, 0, 0.2); }
+
+/* === Кнопки текстовых критериев (варианты) === */
 .param-variant-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
-  justify-content: flex-start;
+  gap: 6px;
   flex: 1;
   min-width: 0;
+  justify-content: flex-end;
 }
 .param-criterion-btn {
-  padding: 4px 7px;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 5px;
-  font-size: 0.5rem;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.9);
+  border: none;
+  color: var(--text);
+  background: rgba(0,0,0,0.06);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.param-criterion-btn:not(.active) {
-  opacity: 0.5;
+.param-criterion-btn:not(.active):hover {
+  background: rgba(0,0,0,0.1);
 }
 .param-criterion-btn.active {
-  opacity: 1;
-  border-color: rgba(0, 0, 0, 0.3);
   color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transform: scale(1.02);
 }
-.param-criterion-btn.score-0 { background: #cc0000; }
-.param-criterion-btn.score-1 { background: #e64d00; }
-.param-criterion-btn.score-2 { background: #ff7f00; }
-.param-criterion-btn.score-3 { background: #ff9900; }
-.param-criterion-btn.score-4 { background: #e6b300; }
-.param-criterion-btn.score-5 { background: #ccb300; }
-.param-criterion-btn.score-6 { background: #99a600; }
-.param-criterion-btn.score-7 { background: #66a600; }
-.param-criterion-btn.score-8 { background: #33a600; }
-.param-criterion-btn.score-9 { background: #1a8c00; }
-.param-criterion-btn.score-10 { background: #006600; }
-.param-form-actions {
+.param-criterion-btn.active.score-0 { background: #cc0000; }
+.param-criterion-btn.active.score-1 { background: #e64d00; }
+.param-criterion-btn.active.score-2 { background: #ff7f00; }
+.param-criterion-btn.active.score-3 { background: #ff9900; }
+.param-criterion-btn.active.score-4 { background: #e6b300; }
+.param-criterion-btn.active.score-5 { background: #ccb300; }
+.param-criterion-btn.active.score-6 { background: #99a600; }
+.param-criterion-btn.active.score-7 { background: #66a600; }
+.param-criterion-btn.active.score-8 { background: #33a600; }
+.param-criterion-btn.active.score-9 { background: #1a8c00; }
+.param-criterion-btn.active.score-10 { background: #006600; }
+
+/* === Кнопки действий === */
+.param-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--divider);
 }
+
+.param-card-actions-right {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.btn-delete {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(192,57,43,0.08);
+  color: #c0392b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.btn-delete:hover {
+  background: rgba(192,57,43,0.16);
+}
+
+.btn-delete:active {
+  transform: scale(0.92);
+}
+
+.btn-delete svg {
+  width: 18px;
+  height: 18px;
+}
+
+.btn-cancel {
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1.5px solid rgba(0,0,0,0.12);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-cancel:hover {
+  background: rgba(0,0,0,0.06);
+  border-color: rgba(0,0,0,0.2);
+}
+
+.btn-cancel:active {
+  transform: scale(0.96);
+}
+
+.btn-save {
+  padding: 8px 24px;
+  border-radius: 20px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  background: var(--text);
+  color: var(--card-bg);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-save:hover:not(:disabled) {
+  opacity: 0.88;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+}
+
+.btn-save:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.btn-save:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* === Модальное окно шаблонов === */
 .param-templates-modal {
   padding: 20px;
-  background: var(--tg-theme-bg-color, #fff);
-  border-radius: 12px;
+  background: var(--card-bg, #D3D4D1);
+  border-radius: 16px;
   max-width: 90vw;
+  box-shadow: 0 20px 60px rgba(80,60,40,0.18);
 }
 .param-templates-modal-title {
   margin: 0 0 12px 0;
@@ -1183,10 +1560,20 @@ function formatNumber(v: number | null): string {
 .param-templates-search {
   margin-bottom: 12px;
 }
+
+.param-templates-search :deep(.n-input) {
+  --n-color: rgba(255,255,255,0.25) !important;
+  --n-color-focus: rgba(255,255,255,0.35) !important;
+  --n-border: none !important;
+  --n-border-hover: none !important;
+  --n-border-focus: none !important;
+  --n-box-shadow-focus: none !important;
+  border-radius: 12px !important;
+}
 .param-templates-empty {
   padding: 24px;
   text-align: center;
-  color: var(--tg-theme-hint-color, #666);
+  color: var(--text-muted, #666);
   font-size: 0.9rem;
 }
 .param-templates-list {
@@ -1201,15 +1588,16 @@ function formatNumber(v: number | null): string {
   gap: 6px;
   padding: 12px;
   min-width: 0;
-  border: 1px solid var(--tg-theme-hint-color, #ccc);
-  border-radius: 8px;
-  background: var(--tg-theme-bg-color, #fff);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.25);
   cursor: pointer;
   text-align: left;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
 }
 .param-template-item:hover {
-  background: rgba(128, 128, 128, 0.08);
+  background: rgba(255,255,255,0.45);
+  transform: translateY(-1px);
 }
 .param-template-header {
   display: flex;
@@ -1228,15 +1616,15 @@ function formatNumber(v: number | null): string {
 .param-template-unit {
   font-size: 0.525rem;
   color: #555;
-  background: #bbb;
+  background: rgba(0,0,0,0.08);
   padding: 1px 6px;
   border-radius: 4px;
   flex-shrink: 0;
 }
 .param-template-count {
   font-size: 0.525rem;
-  color: #fff;
-  background: #999;
+  color: var(--text, #333);
+  background: rgba(0,0,0,0.08);
   padding: 1px 6px;
   border-radius: 4px;
   flex-shrink: 0;
@@ -1248,7 +1636,7 @@ function formatNumber(v: number | null): string {
   width: 100%;
   min-width: 0;
   font-size: 0.8rem;
-  color: var(--tg-theme-hint-color, #666);
+  color: var(--text-muted, #666);
 }
 .param-template-criterion {
   padding: 2px 6px;
@@ -1267,5 +1655,7 @@ function formatNumber(v: number | null): string {
 .param-template-criterion.score-pale-10 { background: rgba(0, 102, 0, 0.25); }
 .param-templates-modal-actions {
   margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
 }
 </style>
