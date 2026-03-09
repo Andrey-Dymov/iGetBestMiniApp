@@ -7,7 +7,6 @@ import {
   NList,
   NListItem,
   NThing,
-  NEmpty,
   NModal,
   NInput,
   NForm,
@@ -105,7 +104,7 @@ function formatDate(iso: string) {
   return `${get('day')} ${month} ${get('year')} ${get('weekday')}`.trim()
 }
 
-function sortedVariants(c: { variants: { id: string; name: string; totalScore: number; imageUrl?: string }[] }) {
+function sortedVariants(c: Comparison) {
   return [...c.variants].sort((a, b) => b.totalScore - a.totalScore)
 }
 
@@ -287,7 +286,7 @@ function addSingleSample(name: string) {
         </NDropdown>
         <button type="button" class="btn-add" @click="openAdd">
           <NIcon><AddOutline /></NIcon>
-          {{ t('comparisons.add') }}
+          {{ t('comparisons.addComparison') }}
         </button>
       </div>
     </div>

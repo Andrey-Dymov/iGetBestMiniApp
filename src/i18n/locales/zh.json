@@ -35,6 +35,7 @@
   },
   "comparisons": {
     "add": "添加",
+    "addComparison": "比较",
     "empty": "没有比较。创建第一个！",
     "new": "新建比较",
     "name": "名称",

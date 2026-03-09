@@ -3,8 +3,6 @@ import { ref, watch, TransitionGroup, nextTick, computed } from 'vue'
 import {
   NInput,
   NInputNumber,
-  NRadioGroup,
-  NRadioButton,
   NModal,
   NScrollbar,
 } from 'naive-ui'
@@ -767,12 +765,20 @@ function incVariantNumeric(variantId: string, direction: number) {
 
   <NModal :show="showTemplatesModal" @update:show="onTemplatesModalUpdate">
     <div class="param-templates-modal">
-      <h4 class="param-templates-modal-title">{{ t('paramForm.selectTemplate') }}</h4>
+      <span class="param-templates-modal-title">{{ t('paramForm.selectTemplate') }}</span>
       <div class="param-templates-type-row">
-        <NRadioGroup v-model:value="templateModalType">
-          <NRadioButton value="number">{{ t('results.paramTypeNumber') }}</NRadioButton>
-          <NRadioButton value="text">{{ t('results.paramTypeText') }}</NRadioButton>
-        </NRadioGroup>
+        <button
+          type="button"
+          class="param-templates-type-pill"
+          :class="{ active: templateModalType === 'number' }"
+          @click="templateModalType = 'number'"
+        >{{ t('results.paramTypeNumber') }}</button>
+        <button
+          type="button"
+          class="param-templates-type-pill"
+          :class="{ active: templateModalType === 'text' }"
+          @click="templateModalType = 'text'"
+        >{{ t('results.paramTypeText') }}</button>
       </div>
       <NInput
         v-model:value="templateSearchQuery"
@@ -1543,44 +1549,83 @@ function incVariantNumeric(variantId: string, direction: number) {
 
 /* === Модальное окно шаблонов === */
 .param-templates-modal {
+  --card-bg: #FFFFFF;
+  --text: var(--tg-theme-text-color, #1a1a1a);
+  --text-muted: #8a8580;
+  --divider: rgba(0,0,0,0.06);
   padding: 20px;
-  background: var(--card-bg, #FFFFFF);
-  border-radius: 16px;
+  background: var(--card-bg);
+  border-radius: 20px;
   max-width: 90vw;
-  box-shadow: 0 20px 60px rgba(80,60,40,0.18);
+  box-shadow: 0 20px 60px rgba(80,60,40,0.18), 0 2px 6px rgba(80,60,40,0.08);
 }
+
 .param-templates-modal-title {
-  margin: 0 0 12px 0;
-  font-size: 1rem;
+  display: block;
+  margin: 0 0 16px 0;
+  font-size: 11px;
   font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
+
 .param-templates-type-row {
-  margin-bottom: 12px;
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
 }
+
+.param-templates-type-pill {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  color: var(--text);
+  background: rgba(0,0,0,0.06);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.param-templates-type-pill:hover:not(.active) {
+  background: rgba(0,0,0,0.1);
+}
+
+.param-templates-type-pill.active {
+  background: var(--text);
+  color: var(--card-bg);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
 .param-templates-search {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .param-templates-search :deep(.n-input) {
-  --n-color: rgba(255,255,255,0.25) !important;
-  --n-color-focus: rgba(255,255,255,0.35) !important;
+  --n-color: #FFFFFF !important;
+  --n-color-focus: #FFFFFF !important;
   --n-border: none !important;
   --n-border-hover: none !important;
   --n-border-focus: none !important;
   --n-box-shadow-focus: none !important;
   border-radius: 12px !important;
 }
+
 .param-templates-empty {
   padding: 24px;
   text-align: center;
-  color: var(--text-muted, #666);
+  color: var(--text-muted);
   font-size: 0.9rem;
 }
+
 .param-templates-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+
 .param-template-item {
   display: flex;
   flex-direction: column;
@@ -1588,17 +1633,20 @@ function incVariantNumeric(variantId: string, direction: number) {
   gap: 6px;
   padding: 12px;
   min-width: 0;
-  border: 1px solid rgba(0,0,0,0.08);
+  border: 1px solid var(--divider);
   border-radius: 12px;
-  background: rgba(255,255,255,0.25);
+  background: rgba(0,0,0,0.04);
   cursor: pointer;
   text-align: left;
   transition: all 0.2s ease;
 }
+
 .param-template-item:hover {
-  background: rgba(255,255,255,0.45);
+  background: rgba(0,0,0,0.08);
+  border-color: rgba(0,0,0,0.12);
   transform: translateY(-1px);
 }
+
 .param-template-header {
   display: flex;
   align-items: center;
@@ -1606,29 +1654,34 @@ function incVariantNumeric(variantId: string, direction: number) {
   width: 100%;
   gap: 8px;
 }
+
 .param-template-name {
   font-weight: 600;
   font-size: 0.95rem;
+  color: var(--text);
   flex: 1;
   min-width: 0;
   text-align: left;
 }
+
 .param-template-unit {
-  font-size: 0.525rem;
-  color: #555;
-  background: rgba(0,0,0,0.08);
-  padding: 1px 6px;
-  border-radius: 4px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: rgba(0,0,0,0.06);
+  padding: 2px 8px;
+  border-radius: 8px;
   flex-shrink: 0;
 }
+
 .param-template-count {
-  font-size: 0.525rem;
-  color: var(--text, #333);
+  font-size: 0.75rem;
+  color: var(--text);
   background: rgba(0,0,0,0.08);
-  padding: 1px 6px;
-  border-radius: 4px;
+  padding: 2px 8px;
+  border-radius: 8px;
   flex-shrink: 0;
 }
+
 .param-template-criteria {
   display: flex;
   flex-wrap: wrap;
@@ -1636,25 +1689,30 @@ function incVariantNumeric(variantId: string, direction: number) {
   width: 100%;
   min-width: 0;
   font-size: 0.8rem;
-  color: var(--text-muted, #666);
+  color: var(--text-muted);
 }
+
 .param-template-criterion {
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: 6px;
 }
-.param-template-criterion.score-pale-0 { background: rgba(204, 0, 0, 0.25); }
-.param-template-criterion.score-pale-1 { background: rgba(230, 77, 0, 0.25); }
-.param-template-criterion.score-pale-2 { background: rgba(255, 127, 0, 0.25); }
-.param-template-criterion.score-pale-3 { background: rgba(255, 153, 0, 0.25); }
-.param-template-criterion.score-pale-4 { background: rgba(230, 179, 0, 0.25); }
-.param-template-criterion.score-pale-5 { background: rgba(204, 179, 0, 0.25); }
-.param-template-criterion.score-pale-6 { background: rgba(153, 166, 0, 0.25); }
-.param-template-criterion.score-pale-7 { background: rgba(102, 166, 0, 0.25); }
-.param-template-criterion.score-pale-8 { background: rgba(51, 166, 0, 0.25); }
-.param-template-criterion.score-pale-9 { background: rgba(26, 140, 0, 0.25); }
-.param-template-criterion.score-pale-10 { background: rgba(0, 102, 0, 0.25); }
+
+.param-template-criterion.score-pale-0 { background: rgba(204, 0, 0, 0.2); }
+.param-template-criterion.score-pale-1 { background: rgba(230, 77, 0, 0.2); }
+.param-template-criterion.score-pale-2 { background: rgba(255, 127, 0, 0.2); }
+.param-template-criterion.score-pale-3 { background: rgba(255, 153, 0, 0.2); }
+.param-template-criterion.score-pale-4 { background: rgba(230, 179, 0, 0.2); }
+.param-template-criterion.score-pale-5 { background: rgba(204, 179, 0, 0.2); }
+.param-template-criterion.score-pale-6 { background: rgba(153, 166, 0, 0.2); }
+.param-template-criterion.score-pale-7 { background: rgba(102, 166, 0, 0.2); }
+.param-template-criterion.score-pale-8 { background: rgba(51, 166, 0, 0.2); }
+.param-template-criterion.score-pale-9 { background: rgba(26, 140, 0, 0.2); }
+.param-template-criterion.score-pale-10 { background: rgba(0, 102, 0, 0.2); }
+
 .param-templates-modal-actions {
   margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--divider);
   display: flex;
   justify-content: flex-end;
 }

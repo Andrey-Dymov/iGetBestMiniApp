@@ -35,6 +35,7 @@
   },
   "comparisons": {
     "add": "Add",
+    "addComparison": "Comparison",
     "empty": "No comparisons. Create the first one!",
     "new": "New comparison",
     "name": "Name",

@@ -94,12 +94,13 @@ export const useComparisonsStore = defineStore('comparisons', () => {
   }
 
   function assignColorsToVariants(c: Comparison) {
-    const usedColors = new Set(c.variants.filter((v) => v.color).map((v) => v.color!))
+    const usedColors = new Set<string>(c.variants.filter((v) => v.color).map((v) => v.color!))
     for (const v of c.variants) {
       if (!v.color) {
-        v.color = VARIANT_PALETTE.find((cl) => !usedColors.has(cl))
-          ?? VARIANT_PALETTE[c.variants.indexOf(v) % VARIANT_PALETTE.length]
-        usedColors.add(v.color)
+        const color: string = VARIANT_PALETTE.find((cl) => !usedColors.has(cl))
+          ?? VARIANT_PALETTE[c.variants.indexOf(v) % VARIANT_PALETTE.length]!
+        v.color = color
+        usedColors.add(color)
       }
     }
   }
