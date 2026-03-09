@@ -98,6 +98,8 @@ function id() {
 
 const showTemplatesModal = ref(false)
 const templateSearchQuery = ref('')
+/** Тип параметра при просмотре шаблонов — можно переключать в модальном окне */
+const templateModalType = ref<'number' | 'text'>('number')
 
 /** Ключ для группировки шаблонов с одинаковыми критериями. Нормализация для объединения дубликатов. */
 function createCriteriaKey(items: CriteriaTemplateItem[], type: 'number' | 'text'): string {
@@ -114,8 +116,8 @@ function createCriteriaKey(items: CriteriaTemplateItem[], type: 'number' | 'text
     .join('|')
 }
 
-function getStaticTemplates(): CriteriaTemplate[] {
-  if (paramType.value === 'number') {
+function getStaticTemplates(type: 'number' | 'text'): CriteriaTemplate[] {
+  if (type === 'number') {
     return [
       {
         id: 'static-scale10',
@@ -159,9 +161,8 @@ function getMostFrequentUnit(units: string[]): string | undefined {
   return result || undefined
 }
 
-function getDynamicTemplates(): CriteriaTemplate[] {
+function getDynamicTemplates(type: 'number' | 'text'): CriteriaTemplate[] {
   const comps = props.allComparisons ?? []
-  const type = paramType.value
   const groups = new Map<
     string,
     { criteria: CriteriaTemplateItem[]; count: number; sourceNames: string[]; units: string[] }
@@ -215,13 +216,14 @@ function getDynamicTemplates(): CriteriaTemplate[] {
 }
 
 const allTemplates = computed(() => {
-  const dynamic = getDynamicTemplates()
-  const static_ = getStaticTemplates()
+  const type = templateModalType.value
+  const dynamic = getDynamicTemplates(type)
+  const static_ = getStaticTemplates(type)
   const seen = new Set<string>()
   const result: CriteriaTemplate[] = []
   for (const tpl of [...dynamic, ...static_]) {
     if (tpl.criteria.length === 0) continue
-    const key = createCriteriaKey(tpl.criteria, paramType.value)
+    const key = createCriteriaKey(tpl.criteria, type)
     if (!seen.has(key)) {
       seen.add(key)
       result.push(tpl)
@@ -249,10 +251,15 @@ const filteredTemplates = computed(() => {
 
 function onTemplatesModalUpdate(show: boolean) {
   showTemplatesModal.value = show
-  if (!show) templateSearchQuery.value = ''
+  if (show) {
+    templateModalType.value = paramType.value
+  } else {
+    templateSearchQuery.value = ''
+  }
 }
 
 function applyTemplateFrom(template: CriteriaTemplate) {
+  paramType.value = templateModalType.value
   criteria.value = template.criteria.map((c) => ({
     id: id(),
     name: c.name,
@@ -260,6 +267,7 @@ function applyTemplateFrom(template: CriteriaTemplate) {
     numericValue: c.numericValue,
     score: c.score,
   }))
+  onParamTypeChange()
   syncDisplayedCriteria()
   showTemplatesModal.value = false
 }
@@ -726,6 +734,12 @@ function formatNumber(v: number | null): string {
   <NModal :show="showTemplatesModal" @update:show="onTemplatesModalUpdate">
     <div class="param-templates-modal">
       <h4 class="param-templates-modal-title">{{ t('paramForm.selectTemplate') }}</h4>
+      <div class="param-templates-type-row">
+        <NRadioGroup v-model:value="templateModalType">
+          <NRadioButton value="number">{{ t('results.paramTypeNumber') }}</NRadioButton>
+          <NRadioButton value="text">{{ t('results.paramTypeText') }}</NRadioButton>
+        </NRadioGroup>
+      </div>
       <NInput
         v-model:value="templateSearchQuery"
         :placeholder="t('paramForm.searchTemplate')"
@@ -1162,6 +1176,9 @@ function formatNumber(v: number | null): string {
   margin: 0 0 12px 0;
   font-size: 1rem;
   font-weight: 700;
+}
+.param-templates-type-row {
+  margin-bottom: 12px;
 }
 .param-templates-search {
   margin-bottom: 12px;
