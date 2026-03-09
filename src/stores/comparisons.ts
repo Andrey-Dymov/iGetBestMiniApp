@@ -12,6 +12,18 @@ import {
   importFromJSON,
 } from '../utils/importExport'
 
+export const VARIANT_PALETTE = [
+  '#5B8C5A', // приглушённый зелёный
+  '#3D7EA6', // стальной синий
+  '#C2705B', // терракота
+  '#7A6FAC', // лавандовый фиолет
+  '#B89B3E', // горчичное золото
+  '#4A8C8C', // бирюзовый тёмный
+  '#A65D7A', // пыльная роза
+  '#6A7B3A', // оливковый
+  '#8C6239', // тёплая умбра
+] as const
+
 function generateId(): string {
   return crypto.randomUUID()
 }
@@ -28,6 +40,19 @@ export const useComparisonsStore = defineStore('comparisons', () => {
   async function load() {
     const data = await loadData()
     comparisons.value = (data.comparisons as Comparison[]) ?? []
+    let needsSave = false
+    for (const c of comparisons.value) {
+      const usedColors = new Set(c.variants.filter((v) => v.color).map((v) => v.color))
+      for (const v of c.variants) {
+        if (!v.color) {
+          v.color = VARIANT_PALETTE.find((cl) => !usedColors.has(cl))
+            ?? VARIANT_PALETTE[c.variants.indexOf(v) % VARIANT_PALETTE.length]
+          usedColors.add(v.color)
+          needsSave = true
+        }
+      }
+    }
+    if (needsSave) save()
   }
 
   async function save() {
@@ -72,12 +97,16 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     const c = getComparison(comparisonId)
     if (!c) throw new Error('Comparison not found')
     const num = c.variants.length + 1
+    const usedColors = new Set(c.variants.map((v) => v.color))
+    const color = VARIANT_PALETTE.find((cl) => !usedColors.has(cl))
+      ?? VARIANT_PALETTE[(c.variants.length) % VARIANT_PALETTE.length]
     const v: Variant = {
       id: generateId(),
       name,
       number: num,
       totalScore: 0,
       position: 0,
+      color,
     }
     c.variants.push(v)
     c.modifiedDate = new Date().toISOString()
@@ -112,7 +141,7 @@ export const useComparisonsStore = defineStore('comparisons', () => {
     return p
   }
 
-  function updateVariant(comparisonId: string, variantId: string, updates: Partial<Pick<Variant, 'name' | 'imageUrl'>>) {
+  function updateVariant(comparisonId: string, variantId: string, updates: Partial<Pick<Variant, 'name' | 'imageUrl' | 'color'>>) {
     const c = getComparison(comparisonId)
     const v = c?.variants.find((x) => x.id === variantId)
     if (!v) return

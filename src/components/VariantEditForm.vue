@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { NInput, NInputNumber } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { findScoreFromCriteria } from '../utils/importExport'
@@ -14,6 +14,7 @@ const props = defineProps<{
   variant: Variant | null
   comparison: { parameters: Parameter[]; values: Value[] }
   getValue: (variantId: string, parameterId: string) => Value | undefined
+  nextColor?: string
 }>()
 
 const emit = defineEmits<{
@@ -28,6 +29,8 @@ const name = ref('')
 const parameterValues = ref<Record<string, VariantValue>>({})
 const imageUrl = ref('')
 const fileInputRef = ref<HTMLInputElement | null>(null)
+
+const variantColor = computed(() => props.variant?.color ?? props.nextColor ?? '')
 
 function triggerFilePick() {
   fileInputRef.value?.click()
@@ -220,14 +223,11 @@ function onHeroClick(e: MouseEvent) {
           class="variant-card-hero-img"
           @error="($event.target as HTMLImageElement)?.style?.setProperty('display', 'none')"
         />
-        <div v-else class="variant-card-hero-placeholder">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="3" y="3" width="18" height="18" rx="3"/>
-            <circle cx="8.5" cy="8.5" r="1.5"/>
-            <path d="m21 15-5-5L5 21"/>
-          </svg>
-          <span>{{ t('variantForm.addPhoto') }}</span>
-        </div>
+        <div
+          v-else
+          class="variant-card-hero-placeholder"
+          :style="variantColor ? { background: variantColor } : {}"
+        ></div>
         <div class="variant-card-hero-scrim">
           <input
             v-model="name"
@@ -387,11 +387,11 @@ function onHeroClick(e: MouseEvent) {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #b0a89e;
+  color: rgba(255,255,255,0.7);
   gap: 10px;
 }
 
-.variant-card-hero-placeholder svg { opacity: 0.35; }
+.variant-card-hero-placeholder svg { opacity: 0.5; }
 .variant-card-hero-placeholder span { font-size: 13px; }
 
 .variant-card-hero-scrim {
@@ -468,6 +468,7 @@ function onHeroClick(e: MouseEvent) {
   --n-box-shadow-focus: none !important;
   --n-padding-left: 0 !important;
   --n-padding-right: 0 !important;
+  --n-text-color: var(--text-muted) !important;
 }
 
 .variant-card-scores {

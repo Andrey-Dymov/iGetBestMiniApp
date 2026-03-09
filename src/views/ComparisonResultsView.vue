@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch, TransitionGroup } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useComparisonsStore } from '../stores/comparisons'
+import { useComparisonsStore, VARIANT_PALETTE } from '../stores/comparisons'
 import { NButton, NEmpty, NModal, NIcon, NSlider } from 'naive-ui'
 import { AddOutline } from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
@@ -28,6 +28,14 @@ const sortedVariants = computed(() => {
   const c = comparison.value
   if (!c) return []
   return [...c.variants].sort((a, b) => b.totalScore - a.totalScore)
+})
+
+const nextVariantColor = computed(() => {
+  const c = comparison.value
+  if (!c) return VARIANT_PALETTE[0]
+  const usedColors = new Set(c.variants.map((v) => v.color))
+  return VARIANT_PALETTE.find((cl) => !usedColors.has(cl))
+    ?? VARIANT_PALETTE[c.variants.length % VARIANT_PALETTE.length]
 })
 
 const sortedParameters = computed(() => {
@@ -113,6 +121,15 @@ function openAddVariant() {
 }
 
 function openEditVariant(v: Variant) {
+  if (!v.color) {
+    const c = comparison.value
+    if (c) {
+      const usedColors = new Set(c.variants.filter((x) => x.color).map((x) => x.color))
+      const color = VARIANT_PALETTE.find((cl) => !usedColors.has(cl))
+        ?? VARIANT_PALETTE[c.variants.indexOf(v) % VARIANT_PALETTE.length]
+      store.updateVariant(c.id, v.id, { color })
+    }
+  }
   editingVariant.value = v
   showVariantModal.value = true
 }
@@ -394,7 +411,11 @@ function onParamFormDelete() {
                         class="variant-header-thumb"
                         @error="($event.target as HTMLImageElement)?.style?.setProperty('display', 'none')"
                       />
-                      <div v-else class="variant-thumb-placeholder"></div>
+                      <div
+                        v-else
+                        class="variant-thumb-placeholder"
+                        :style="v.color ? { background: v.color } : {}"
+                      ></div>
                     </div>
                   </div>
                 </th>
@@ -468,6 +489,7 @@ function onParamFormDelete() {
           :variant="editingVariant"
           :comparison="comparison"
           :get-value="getValue"
+          :next-color="nextVariantColor"
           @save="onVariantFormSave"
           @cancel="showVariantModal = false"
           @delete="onVariantFormDelete"
@@ -653,6 +675,7 @@ function onParamFormDelete() {
   height: 32px;
   min-width: 40px;
   flex-shrink: 0;
+  border-radius: 6px;
 }
 
 .variant-score-row {

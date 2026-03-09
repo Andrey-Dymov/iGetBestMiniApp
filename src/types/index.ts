@@ -21,6 +21,7 @@ export interface Variant {
   position: number
   url?: string
   imageUrl?: string
+  color?: string
 }
 
 export interface Parameter {
