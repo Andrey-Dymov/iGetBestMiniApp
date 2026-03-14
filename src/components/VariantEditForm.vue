@@ -330,7 +330,7 @@ function onHeroClick(e: MouseEvent) {
     <!-- Кнопки действий -->
     <div class="variant-card-actions">
       <button v-if="isEdit()" type="button" class="btn-delete" @click="doDelete">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="3 6 5 6 21 6"/>
           <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
         </svg>
@@ -653,13 +653,30 @@ function onHeroClick(e: MouseEvent) {
 }
 
 .btn-delete {
-  color: #c0392b;
-  background: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   border: none;
+  background: rgba(192, 57, 43, 0.08);
+  color: #c0392b;
   cursor: pointer;
-  padding: 8px 4px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.btn-delete:hover {
+  background: rgba(192, 57, 43, 0.16);
+}
+
+.btn-delete:active {
+  transform: scale(0.92);
+}
+
+.btn-delete svg {
+  width: 18px;
+  height: 18px;
 }
 
 .variant-card-actions-right {
