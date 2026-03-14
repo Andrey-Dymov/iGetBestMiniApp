@@ -28,7 +28,7 @@ import {
 import { useI18n } from 'vue-i18n'
 import { useMessage } from 'naive-ui'
 import type { Comparison } from '../types'
-import { i18n, LOCALES } from '../i18n'
+import { i18n, LOCALES, type LocaleCode } from '../i18n'
 import { getSampleComparisons } from '../data/samples'
 import type { DropdownOption } from 'naive-ui'
 
@@ -38,18 +38,31 @@ const { t, locale } = useI18n()
 const message = useMessage()
 
 const dateLocale = computed(() => {
-  if (locale.value === 'ru') return 'ru-RU'
-  if (locale.value === 'zh') return 'zh-CN'
-  return 'en-GB'
+  const map: Record<string, string> = {
+    ru: 'ru-RU',
+    zh: 'zh-CN',
+    hi: 'hi-IN',
+    es: 'es-ES',
+    bn: 'bn-BD',
+    pt: 'pt-BR',
+    ja: 'ja-JP',
+    fr: 'fr-FR',
+    de: 'de-DE',
+    ar: 'ar-SA',
+  }
+  return map[locale.value] ?? 'en-GB'
 })
 
 const localeOptions = computed<DropdownOption[]>(() =>
   LOCALES.map((l) => ({ label: l.label, key: l.code }))
 )
 
-function setLocale(code: string) {
-  locale.value = code as 'en' | 'ru' | 'zh'
-  i18n.global.locale.value = code as 'en' | 'ru' | 'zh'
+function setLocale(key: string | number) {
+  const code = String(key)
+  if (!(LOCALES as readonly { code: string }[]).some((l) => l.code === code)) return
+  const c = code as LocaleCode
+  locale.value = c
+  i18n.global.locale.value = c
   try {
     localStorage.setItem('igetbest-locale', code)
   } catch {}
@@ -264,11 +277,28 @@ function addSingleSample(name: string) {
   <div class="list">
     <div class="header">
       <div class="header-left">
-        <NDropdown :options="localeOptions" trigger="click" @select="setLocale" placement="bottom-start">
-          <NButton quaternary size="small" class="lang-btn">
-            {{ LOCALES.find((l) => l.code === locale)?.label ?? 'EN' }}
-          </NButton>
-        </NDropdown>
+        <div class="lang-dropdown-wrap">
+          <NDropdown
+            v-if="locale !== 'ar'"
+            :options="localeOptions"
+            trigger="click"
+            @select="setLocale"
+            placement="bottom-start"
+          >
+            <NButton quaternary size="small" class="lang-btn">
+              {{ LOCALES.find((l) => l.code === locale)?.label ?? 'EN' }}
+            </NButton>
+          </NDropdown>
+          <select
+            v-else
+            :value="locale"
+            class="lang-select"
+            :aria-label="t('list.title')"
+            @change="(e) => setLocale((e.target as HTMLSelectElement).value)"
+          >
+            <option v-for="l in LOCALES" :key="l.code" :value="l.code">{{ l.label }}</option>
+          </select>
+        </div>
       </div>
       <h1 class="list-title">{{ t('list.title') }}</h1>
       <div class="header-right">
@@ -507,8 +537,35 @@ function addSingleSample(name: string) {
   white-space: nowrap;
 }
 
+.lang-dropdown-wrap {
+  display: flex;
+}
+
 .lang-btn {
   min-width: 44px;
+}
+
+.lang-select {
+  min-width: 44px;
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--tg-theme-text-color, #1a1a1a);
+  cursor: pointer;
+  direction: ltr;
+}
+
+.lang-select:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.lang-select:focus {
+  outline: none;
+  border-color: rgba(0, 0, 0, 0.3);
 }
 
 .list-item {

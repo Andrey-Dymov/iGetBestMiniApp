@@ -2,9 +2,23 @@
 import { NConfigProvider, NMessageProvider } from 'naive-ui'
 import { useTelegramTheme } from './composables/useTelegramTheme'
 import { initTelegram } from './telegram'
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
+import { i18n } from './i18n'
 
 const themeOverrides = useTelegramTheme()
+
+function applyRtl(locale: string) {
+  const html = document.documentElement
+  if (locale === 'ar') {
+    html.dir = 'rtl'
+    html.lang = 'ar'
+  } else {
+    html.dir = 'ltr'
+    html.lang = locale
+  }
+}
+
+watch(() => i18n.global.locale.value, applyRtl, { immediate: true })
 
 onMounted(async () => {
   await initTelegram()
